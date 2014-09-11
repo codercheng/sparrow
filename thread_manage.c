@@ -7,16 +7,11 @@
 
 #include <stdio.h>
 
-void *test(int fd, EV_TYPE events) {
-	printf("ready read\n");
-	return NULL;
-}
 
 static
 void * worker_threads_entrance(void *arg) {
 	log_info("ready to enter the loop...");
 	ev_loop_t *loop = (ev_loop_t *)arg;
-	ev_register(loop, 0, EV_READ, test);
 	ev_run_loop(loop);
 	return NULL;
 }

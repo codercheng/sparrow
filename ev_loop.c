@@ -215,7 +215,7 @@ int tcp_server(int port) {
 	int ret;
 	ret = bind(listen_sock, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	if(-1 == ret) {
-		fprintf(stderr, "bind err\n");
+		fprintf(stderr, "bind err: %s\n", strerror(errno));
 	}
 
 	setnonblocking(listen_sock);
