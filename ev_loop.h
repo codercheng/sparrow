@@ -18,15 +18,34 @@ extern "C"
 
 #include <unistd.h>
 #include <sys/epoll.h>
+#include "global.h"
 
 #define EV_TYPE __uint32_t
+
+
+/**
+ * use when init fd_records in muti_threads environment
+ */
+#define LOCK(Lock)  while(!__sync_bool_compare_and_swap(&Lock, 0, 1))
+#define UNLOCK(Lock) Lock = 0
 
 enum {
 	EV_READ = EPOLLIN,
 	EV_WRITE = EPOLLOUT
 };
 
-typedef void* (*cb_func_t) (int fd, EV_TYPE events);
+
+
+
+typedef struct {
+	int epfd;
+	int maxevent;
+	int etmodel;
+	//fd_record_t *fd_records;
+	struct epoll_event *events;
+}ev_loop_t;
+
+typedef void* (*cb_func_t) (ev_loop_t *loop, int fd, EV_TYPE events);
 
 typedef struct {
 	int active;
@@ -35,18 +54,16 @@ typedef struct {
 	cb_func_t cb_read;
 	cb_func_t cb_write; 	
 
-	void *ptr; /*reserved pointer*/
+	int ffd;
+	unsigned int write_pos;
+	unsigned int read_pos;
+	unsigned int total_len;
+	char buf[MAXBUFSIZE];
+	//void *ptr; /*reserved pointer*/
 }fd_record_t;
 
-
-typedef struct {
-	int epfd;
-	int maxevent;
-	int etmodel;
-	fd_record_t *fd_records;
-	struct epoll_event *events;
-}ev_loop_t;
-
+//muti-threads share the fd_records
+fd_record_t *fd_records;
 
 ev_loop_t *ev_create_loop(int maxevent, int et);
 int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb);

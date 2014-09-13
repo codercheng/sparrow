@@ -2,6 +2,7 @@
 #include "async_log.h"
 #include "thread_manage.h"
 #include "global.h"
+#include "bitchttpd.h"
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -12,6 +13,9 @@ static
 void * worker_threads_entrance(void *arg) {
 	log_info("ready to enter the loop...");
 	ev_loop_t *loop = (ev_loop_t *)arg;
+	if(loop == NULL) {
+		printf("wo cao\n");
+	}
 	ev_run_loop(loop);
 	return NULL;
 }

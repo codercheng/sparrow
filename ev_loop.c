@@ -10,6 +10,7 @@
 
 
 #include "ev_loop.h"
+//#include "bitchttpd.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +29,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+static int lock_ = 0;
 
 /**
  * create and init an event loop
@@ -44,15 +46,34 @@ ev_loop_t *ev_create_loop(int maxevent, int et) {
 		return NULL;
 	}
 	loop->events = (struct epoll_event *)malloc(maxevent * sizeof(struct epoll_event));
+
 	//init
-	loop->fd_records = (fd_record_t *)malloc(maxevent * sizeof(fd_record_t));
+	LOCK(lock_);
+	if(fd_records == NULL) {
+		fd_records = (fd_record_t *)malloc(maxevent * sizeof(fd_record_t));
+		printf("init\n");
+	}
+	printf("after init\n");
+	UNLOCK(lock_);
 	int i;
 	for(i=0; i<maxevent; i++) {
-		loop->fd_records[i].active = 0;
-		loop->fd_records[i].events = 0;
-		loop->fd_records[i].cb_read = NULL;
-		loop->fd_records[i].cb_write = NULL;
-		loop->fd_records[i].ptr = NULL;
+		fd_records[i].active = 0;
+		fd_records[i].events = 0;
+		fd_records[i].cb_read = NULL;
+		fd_records[i].cb_write = NULL;
+
+		fd_records[i].ffd = NO_FILE_FD;
+		fd_records[i].write_pos = 0;
+		fd_records[i].read_pos = 0;
+		fd_records[i].total_len = 0;
+		memset(fd_records[i].buf, 0, MAXBUFSIZE);
+		// if(ptr_size == 0)
+		// 	fd_records[i].ptr = NULL;
+		// else {
+		// 	fd_records[i].ptr = (void *)malloc(sizeof(sock_info_t));
+		// 	//memset(fd_records[i].ptr, 0, ptr_size);
+		// }
+
 	}
 	return loop;
 }
@@ -73,31 +94,31 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb) {
 	/**
 	 * events registerd already, just change the cb
 	 */
-	if((loop->fd_records[fd].events & events) == events) {
-		if(loop->fd_records[fd].events & EV_READ) {
-			loop->fd_records[fd].cb_read = cb;
+	if((fd_records[fd].events & events) == events) {
+		if(fd_records[fd].events & EV_READ) {
+			fd_records[fd].cb_read = cb;
 		}
-		if(loop->fd_records[fd].events & EV_WRITE) {
-			loop->fd_records[fd].cb_write = cb;
+		if(fd_records[fd].events & EV_WRITE) {
+			fd_records[fd].cb_write = cb;
 		}
 	} else {     /*new add event*/
 		if(EV_READ & events) {
-			loop->fd_records[fd].events |= events;
-			loop->fd_records[fd].cb_read = cb;
+			fd_records[fd].events |= events;
+			fd_records[fd].cb_read = cb;
 		}
 		if(EV_WRITE & events) {
-			loop->fd_records[fd].events |= events;
-			loop->fd_records[fd].cb_write = cb;
+			fd_records[fd].events |= events;
+			fd_records[fd].cb_write = cb;
 		}
 
 		struct epoll_event ev;
-		ev.events = loop->fd_records[fd].events;
+		ev.events = fd_records[fd].events;
 		if(loop->etmodel) {
 			ev.events |= EPOLLET;
 		}
 		ev.data.fd = fd;
 		
-		if(loop->fd_records[fd].active) {/*mod*/
+		if(fd_records[fd].active) {/*mod*/
 			if(-1 == epoll_ctl(loop->epfd, EPOLL_CTL_MOD, fd, &ev)) {
 				fprintf(stderr, "epoll_ctl mod in ev_register\n");
 				return -1;
@@ -112,7 +133,7 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb) {
 	}
 	
 
-	loop->fd_records[fd].active = 1;
+	fd_records[fd].active = 1;
 	return 0;
 }
 
@@ -125,11 +146,17 @@ int ev_unregister(ev_loop_t *loop, int fd) {
 		fprintf(stderr, "epoll_ctl mod in ev_unregister\n");
 		return -1;
 	}
-	loop->fd_records[fd].active = 0;
-	loop->fd_records[fd].events = 0;
-	loop->fd_records[fd].cb_read = NULL;
-	loop->fd_records[fd].cb_write = NULL;
-	loop->fd_records[fd].ptr = NULL;
+	fd_records[fd].active = 0;
+	fd_records[fd].events = 0;
+	fd_records[fd].cb_read = NULL;
+	fd_records[fd].cb_write = NULL;
+	//fd_records[fd].ptr = NULL;
+	//
+	fd_records[fd].ffd = NO_FILE_FD;
+	fd_records[fd].write_pos = 0;
+	fd_records[fd].read_pos = 0;
+	fd_records[fd].total_len = 0;
+	memset(fd_records[fd].buf, 0, MAXBUFSIZE);
 
 	return 0;
 }
@@ -137,17 +164,20 @@ int ev_unregister(ev_loop_t *loop, int fd) {
  * stop the events on the fd, not unregister the fd
  */
 int ev_stop(ev_loop_t *loop, int fd, EV_TYPE events) {
+
+	printf("1>%d\n", fd_records[fd].events);
 	/*fd in use, and evnets on fd*/
-	if(loop->fd_records[fd].active && (loop->fd_records[fd].events & events)) {
-		if((loop->fd_records[fd].events & EV_READ) && (events & EV_READ)) {
-			loop->fd_records[fd].events &= (~EV_READ);
+	if(fd_records[fd].active && (fd_records[fd].events & events)) {
+		if((fd_records[fd].events & EV_READ) && (events & EV_READ)) {
+			fd_records[fd].events &= (~EV_READ);
 		}
-		if((loop->fd_records[fd].events & EV_WRITE) && (events & EV_WRITE)) {
-			loop->fd_records[fd].events &= (~EV_WRITE);
+		if((fd_records[fd].events & EV_WRITE) && (events & EV_WRITE)) {
+			fd_records[fd].events &= (~EV_WRITE);
 		}
-		
+		printf("2>%d\n", fd_records[fd].events);
+
 		struct epoll_event ev;
-		ev.events = loop->fd_records[fd].events;
+		ev.events = fd_records[fd].events;
 		if(loop->etmodel) {
 			ev.events |= EPOLLET;
 		}
@@ -157,9 +187,10 @@ int ev_stop(ev_loop_t *loop, int fd, EV_TYPE events) {
 			fprintf(stderr, "epoll_ctl mod in ev_stop\n");
 			return -1;
 		}
-
-		if(!(loop->fd_records[fd].events & EV_READ || loop->fd_records[fd].events &EV_WRITE)) {
-			return ev_unregister(loop, fd);
+		printf("3>%d\n", fd_records[fd].events);
+		if(!(fd_records[fd].events & EV_READ || fd_records[fd].events &EV_WRITE)) {
+			printf("here...\n");
+			//return ev_unregister(loop, fd);
 		}
 	}
 	return 0;
@@ -179,14 +210,14 @@ int ev_run_loop(ev_loop_t *loop) {
 		int i;
 		for(i=0; i<num; i++) {
 			int fd = loop->events[i].data.fd;
-			fd_record_t record = loop->fd_records[fd];
+			fd_record_t record = fd_records[fd];
 			
 			if(EV_READ & loop->events[i].events) {
-				(*(record.cb_read))(fd, EV_READ);
+				(*(record.cb_read))(loop, fd, EV_READ);
 			}
-			/*pre-step may have unregister the fd, make sure the fd is active!*/
-			if((EV_WRITE & loop->events[i].events) && loop->fd_records[fd].active) { 
-				(*(record.cb_write))(fd, EV_WRITE);
+			/*pre-step may have unregisterd the fd, make sure the fd is active!*/
+			if((EV_WRITE & loop->events[i].events) && fd_records[fd].active) { 
+				(*(record.cb_write))(loop, fd, EV_WRITE);
 			}
 			
 		}
@@ -216,6 +247,7 @@ int tcp_server(int port) {
 	ret = bind(listen_sock, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	if(-1 == ret) {
 		fprintf(stderr, "bind err: %s\n", strerror(errno));
+		return -1;
 	}
 
 	setnonblocking(listen_sock);
@@ -225,6 +257,7 @@ int tcp_server(int port) {
 
     if(-1 == listen(listen_sock, SOMAXCONN)) {
 		fprintf(stderr, "listen err\n");
+		return -1;
 	}
 	//printf("listen fd:%d\n", listen_sock);
 	return listen_sock;

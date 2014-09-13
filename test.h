@@ -34,7 +34,7 @@
    						 "Content-Type: json\r\nAccept-Charset: utf-8\r\nAccept-Language: en-US,en;q=0.5,zh-CN;q=0.5\r\nConnection: Close\r\n"
 
 
-void write_response_header(int sock, EV_TYPE events)
+void write_response_header(int sockfd, EV_TYPE events)
 {
 
 #ifdef USE_TCP_CORK

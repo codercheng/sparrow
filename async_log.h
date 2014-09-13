@@ -12,7 +12,7 @@ extern "C"
 
 
 #define MAX_PATH 256
-#define MAX_BUF_SIZE 1024
+#define MAX_BUF_SIZE 1024 * 1024 * 4
 
 #define LOG_TRACE_STR "TRACE"
 #define LOG_DEBUG_STR "DEBUG"
