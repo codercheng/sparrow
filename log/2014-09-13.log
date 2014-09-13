@@ -1,0 +1,123 @@
+[ 21:29:53.733986 ] INFO   3342 async_log.c:335 create async_log thread successfully
+[ 21:29:53.737609 ] INFO   3342 thread_manage.c:27 enter worker_init...
+[ 21:29:54.282612 ] INFO   3344 thread_manage.c:14 ready to enter the loop...
+[ 21:30:04.127051 ] INFO   3342 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46096, conn_fd:7
+[ 21:30:04.132721 ] WARN   3344 bitchttpd.c:173 Not a file or a dir
+[ 21:30:15.097994 ] INFO   3342 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46097, conn_fd:8
+[ 21:30:15.101637 ] WARN   3344 bitchttpd.c:173 Not a file or a dir
+[ 21:30:27.768135 ] INFO   3342 async_log.c:341 Log is going to be closed...
+[ 21:30:46.498035 ] INFO   3380 async_log.c:335 create async_log thread successfully
+[ 21:31:31.518078 ] INFO   3417 async_log.c:335 create async_log thread successfully
+[ 21:31:31.519108 ] INFO   3417 thread_manage.c:27 enter worker_init...
+[ 21:31:31.776559 ] INFO   3419 thread_manage.c:14 ready to enter the loop...
+[ 21:31:35.554142 ] INFO   3417 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46100, conn_fd:7
+[ 21:31:42.186035 ] INFO   3417 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46101, conn_fd:7
+[ 21:31:42.186972 ] WARN   3419 bitchttpd.c:183 Not a file
+[ 21:31:58.663788 ] INFO   3417 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46102, conn_fd:8
+[ 21:32:02.786475 ] INFO   3417 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46103, conn_fd:8
+[ 21:32:10.192710 ] INFO   3417 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46104, conn_fd:8
+[ 21:32:10.193754 ] WARN   3419 bitchttpd.c:173 Not a file or a dir
+[ 21:32:23.317313 ] INFO   3417 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46105, conn_fd:9
+[ 21:32:23.323191 ] WARN   3419 bitchttpd.c:173 Not a file or a dir
+[ 21:32:39.885163 ] INFO   3417 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46106, conn_fd:10
+[ 21:32:57.382923 ] INFO   3417 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46107, conn_fd:10
+[ 21:33:30.779543 ] INFO   3417 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46108, conn_fd:10
+[ 21:33:30.781288 ] WARN   3419 bitchttpd.c:173 Not a file or a dir
+[ 21:48:19.489104 ] INFO   3417 async_log.c:341 Log is going to be closed...
+[ 21:50:52.841930 ] INFO   3617 async_log.c:335 create async_log thread successfully
+[ 21:50:52.842958 ] INFO   3617 thread_manage.c:27 enter worker_init...
+[ 21:51:01.184261 ] INFO   3620 thread_manage.c:14 ready to enter the loop...
+[ 21:51:07.217999 ] INFO   3617 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46339, conn_fd:7
+[ 21:51:16.825712 ] INFO   3617 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46340, conn_fd:7
+[ 21:51:16.841311 ] WARN   3620 bitchttpd.c:174 Not a file or a dir
+[ 21:51:16.841328 ] WARN   3620 bitchttpd.c:195 can not open file
+[ 21:51:35.004150 ] INFO   3617 async_log.c:341 Log is going to be closed...
+[ 21:52:40.033966 ] INFO   3654 async_log.c:335 create async_log thread successfully
+[ 21:52:40.069231 ] INFO   3654 thread_manage.c:27 enter worker_init...
+[ 21:52:40.400124 ] INFO   3656 thread_manage.c:14 ready to enter the loop...
+[ 21:52:44.605467 ] INFO   3654 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46343, conn_fd:7
+[ 21:52:44.621501 ] WARN   3656 bitchttpd.c:174 Not a file or a dir
+[ 21:52:44.621517 ] WARN   3656 bitchttpd.c:196 can not open file
+[ 21:53:00.600135 ] INFO   3654 async_log.c:341 Log is going to be closed...
+[ 21:54:44.557948 ] INFO   3692 async_log.c:335 create async_log thread successfully
+[ 21:54:44.563438 ] INFO   3692 thread_manage.c:27 enter worker_init...
+[ 21:54:44.916607 ] INFO   3694 thread_manage.c:14 ready to enter the loop...
+[ 21:54:48.503344 ] INFO   3692 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46346, conn_fd:7
+[ 21:54:48.504743 ] WARN   3694 bitchttpd.c:174 Not a file or a dir
+[ 21:55:30.736936 ] INFO   3692 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46347, conn_fd:7
+[ 21:55:30.751870 ] WARN   3694 bitchttpd.c:174 Not a file or a dir
+[ 21:55:50.573301 ] INFO   3692 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46348, conn_fd:7
+[ 21:55:50.586976 ] WARN   3694 bitchttpd.c:174 Not a file or a dir
+[ 21:59:28.276201 ] INFO   3692 async_log.c:341 Log is going to be closed...
+[ 21:59:31.810297 ] INFO   3749 async_log.c:335 create async_log thread successfully
+[ 21:59:31.811298 ] INFO   3749 thread_manage.c:27 enter worker_init...
+[ 21:59:32.336897 ] INFO   3751 thread_manage.c:14 ready to enter the loop...
+[ 21:59:36.591191 ] INFO   3749 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46349, conn_fd:7
+[ 21:59:36.604430 ] WARN   3751 bitchttpd.c:174 Not a file or a dir
+[ 21:59:39.485246 ] INFO   3749 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46350, conn_fd:7
+[ 21:59:39.486431 ] WARN   3751 bitchttpd.c:174 Not a file or a dir
+[ 22:00:00.704459 ] INFO   3749 async_log.c:341 Log is going to be closed...
+[ 22:00:10.742208 ] INFO   3760 async_log.c:335 create async_log thread successfully
+[ 22:00:12.526303 ] INFO   3763 async_log.c:335 create async_log thread successfully
+[ 22:05:13.854216 ] INFO   3820 async_log.c:335 create async_log thread successfully
+[ 22:05:13.855530 ] INFO   3820 thread_manage.c:27 enter worker_init...
+[ 22:05:14.508455 ] INFO   3822 thread_manage.c:14 ready to enter the loop...
+[ 22:05:18.001965 ] INFO   3820 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46351, conn_fd:7
+[ 22:05:18.015517 ] WARN   3822 bitchttpd.c:174 Not a file or a dir
+[ 22:05:20.200471 ] INFO   3820 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46352, conn_fd:7
+[ 22:05:20.201393 ] WARN   3822 bitchttpd.c:174 Not a file or a dir
+[ 22:05:31.136836 ] INFO   3820 async_log.c:341 Log is going to be closed...
+[ 22:07:49.586486 ] INFO   3862 async_log.c:335 create async_log thread successfully
+[ 22:07:49.588362 ] INFO   3862 thread_manage.c:27 enter worker_init...
+[ 22:07:50.066908 ] INFO   3864 thread_manage.c:14 ready to enter the loop...
+[ 22:07:53.777162 ] INFO   3862 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46353, conn_fd:7
+[ 22:07:53.778992 ] WARN   3864 bitchttpd.c:174 Not a file or a dir
+[ 22:07:58.557562 ] INFO   3862 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46354, conn_fd:7
+[ 22:07:58.568245 ] WARN   3864 bitchttpd.c:174 Not a file or a dir
+[ 22:08:01.610411 ] INFO   3862 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46355, conn_fd:7
+[ 22:08:04.123717 ] INFO   3862 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46356, conn_fd:7
+[ 22:08:13.418081 ] INFO   3862 bitchttpd.c:78 Got connection from ip:127.0.0.1, port:46363, conn_fd:7
+[ 22:14:01.648158 ] INFO   3862 async_log.c:341 Log is going to be closed...
+[ 22:16:11.797323 ] INFO   3983 async_log.c:335 create async_log thread successfully
+[ 22:16:11.798628 ] INFO   3983 thread_manage.c:27 enter worker_init...
+[ 22:16:12.504946 ] INFO   3985 thread_manage.c:14 ready to enter the loop...
+[ 22:16:19.472815 ] INFO   3983 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46364, conn_fd:7
+[ 22:16:24.254653 ] INFO   3983 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46365, conn_fd:7
+[ 22:16:26.716268 ] INFO   3983 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46366, conn_fd:7
+[ 22:16:28.345421 ] INFO   3983 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46367, conn_fd:7
+[ 22:16:31.089265 ] INFO   3983 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46368, conn_fd:7
+[ 22:16:31.090429 ] WARN   3985 bitchttpd.c:174 Not a file or a dir
+[ 22:16:34.186174 ] INFO   3983 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46369, conn_fd:7
+[ 22:16:34.198498 ] WARN   3985 bitchttpd.c:174 Not a file or a dir
+[ 22:16:36.749842 ] INFO   3983 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46370, conn_fd:7
+[ 22:16:36.750488 ] WARN   3985 bitchttpd.c:174 Not a file or a dir
+[ 22:16:40.684658 ] INFO   3983 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46371, conn_fd:7
+[ 22:16:43.758999 ] INFO   3983 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46372, conn_fd:7
+[ 22:16:43.759861 ] WARN   3985 bitchttpd.c:174 Not a file or a dir
+[ 22:16:50.225572 ] INFO   3983 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46373, conn_fd:7
+[ 22:17:06.352160 ] INFO   3983 async_log.c:341 Log is going to be closed...
+[ 22:17:10.945785 ] INFO   4023 async_log.c:335 create async_log thread successfully
+[ 22:18:05.535541 ] INFO   4029 async_log.c:335 create async_log thread successfully
+[ 22:18:05.536695 ] INFO   4029 thread_manage.c:27 enter worker_init...
+[ 22:18:05.800945 ] INFO   4031 thread_manage.c:14 ready to enter the loop...
+[ 22:18:08.664498 ] INFO   4029 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46374, conn_fd:7
+[ 22:18:15.786972 ] INFO   4029 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46375, conn_fd:7
+[ 22:18:15.798608 ] WARN   4031 bitchttpd.c:174 Not a file or a dir
+[ 22:18:20.169648 ] INFO   4029 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46376, conn_fd:7
+[ 22:21:21.881576 ] INFO   4029 async_log.c:341 Log is going to be closed...
+[ 22:22:07.257613 ] INFO   4107 async_log.c:335 create async_log thread successfully
+[ 22:22:07.258365 ] INFO   4107 thread_manage.c:27 enter worker_init...
+[ 22:22:07.713828 ] INFO   4109 thread_manage.c:14 ready to enter the loop...
+[ 22:22:22.936331 ] INFO   4107 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46377, conn_fd:7
+[ 22:23:59.103201 ] INFO   4107 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46378, conn_fd:7
+[ 22:23:59.104304 ] WARN   4109 bitchttpd.c:174 Not a file or a dir
+[ 22:24:01.400129 ] INFO   4107 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46379, conn_fd:7
+[ 22:25:59.891982 ] INFO   4107 async_log.c:341 Log is going to be closed...
+[ 22:26:04.594897 ] INFO   4161 async_log.c:335 create async_log thread successfully
+[ 22:26:04.595879 ] INFO   4161 thread_manage.c:27 enter worker_init...
+[ 22:26:05.097711 ] INFO   4163 thread_manage.c:14 ready to enter the loop...
+[ 22:26:10.499678 ] INFO   4161 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46380, conn_fd:7
+[ 22:26:13.978810 ] INFO   4161 bitchttpd.c:77 Got connection from ip:127.0.0.1, port:46381, conn_fd:7
+[ 22:26:51.556335 ] INFO   4161 async_log.c:341 Log is going to be closed...
+[ 22:26:55.365274 ] INFO   4196 async_log.c:335 create async_log thread successfully
+[ 22:26:57.470826 ] INFO   4199 async_log.c:335 create async_log thread successfully

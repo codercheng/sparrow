@@ -95,10 +95,12 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb) {
 	 * events registerd already, just change the cb
 	 */
 	if((fd_records[fd].events & events) == events) {
+		printf("ev_registered already\n");;
 		if(fd_records[fd].events & EV_READ) {
 			fd_records[fd].cb_read = cb;
 		}
 		if(fd_records[fd].events & EV_WRITE) {
+			printf("+++++++++EV_WRITE++++++++\n");
 			fd_records[fd].cb_write = cb;
 		}
 	} else {     /*new add event*/

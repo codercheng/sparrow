@@ -59,6 +59,7 @@ typedef struct {
 	unsigned int read_pos;
 	unsigned int total_len;
 	char buf[MAXBUFSIZE];
+	int http_code;
 	//void *ptr; /*reserved pointer*/
 }fd_record_t;
 
