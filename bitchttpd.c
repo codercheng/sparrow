@@ -211,7 +211,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		fd_records[sock].total_len = (int)filestat.st_size;
 
 		char content_type[16];
-		char *suffix = strrchr(path, '.');
+		char *suffix = strrchr(filename, '.');
 		if(suffix == NULL) {
 			strcpy(content_type, "text/plain");
 		} else {
