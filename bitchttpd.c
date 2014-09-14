@@ -8,6 +8,7 @@
 #include "thread_manage.h"
 #include "bitchttpd.h"
 #include "mime.h"
+#include "file.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -26,10 +27,14 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+
 char *work_dir;
 
 int listen_sock;
 ev_loop_t * listen_loop = NULL;
+
+char dir_first_part[1024];
+char dir_second_part[512];
 
 void *test(int sock, EV_TYPE events) {
 	printf("ready stdin\n");
@@ -41,6 +46,11 @@ int main()
 	srand(time(0));
  	work_dir = WORKING_DIR;
 	log_init(LOG_TIME_OUT_SECOND, MIN_LOG_LEVEL);
+
+	//for dir
+	block_read(DIR_FIRST_PART, dir_first_part, sizeof(dir_first_part));
+	block_read(DIR_SECOND_PART, dir_second_part, sizeof(dir_second_part));
+
 	//mime type
 	qsort(mime_type, sizeof(mime_type)/sizeof(mime_type_t), sizeof(mime_type_t), cmp);
 
@@ -124,11 +134,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			//client quit
 			printf("+++++++++client quit\n");
 			
-			fd_records[sock].ffd = NO_FILE_FD;
-			fd_records[sock].write_pos = 0;
-			fd_records[sock].total_len = 0;
-			fd_records[sock].http_code = 200;
-			fd_records[sock].read_pos = 0;
+			clear(sock);
 			return NULL;
 		}
 	}
@@ -151,7 +157,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		
 
 		char *prefix = work_dir;
-		char filename[256];
+		char filename[256];//full path
 		strncpy(filename, prefix, strlen(prefix));
 		strncpy(filename+strlen(prefix), path, strlen(path)+1);
 		//filename[]
@@ -182,8 +188,10 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		 * coming soon...
 		 */
 		else if(S_ISDIR(filestat.st_mode)) {
-			log_warn("Not a file");
-			fd_records[sock].http_code = 404;
+			//log_warn("Not a file");
+			printf("---folder---\n");
+
+			fd_records[sock].http_code = DIR_CODE;//1024 represent folder
 			//return NULL;
 		}
 
@@ -194,26 +202,45 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			lstat(filename, &filestat);
 		}
 
-		// if(http_code != 200) {
-		// 	lstat(filename, &filestat);
-		// }
 		printf("file name :%s\n", filename);
-		int fd = open(filename, O_RDONLY);
-		if(-1 == fd) {
-			//info_manager.give_back_node(info);
-			log_warn("can not open file");
-			printf("can not open file\n");
-			return NULL;
+		int fd = -1;
+		if(fd_records[sock].http_code != DIR_CODE) {
+			fd = open(filename, O_RDONLY);
+			if(fd == -1) {
+				printf("server side err!\n");
+				close(sock);
+				clear(sock);
+				return NULL;
+			}
 		}
+			
+
+		//set file fd to not-blocking
+		
+
+		// if(-1 == fd) {
+		// 	//info_manager.give_back_node(info);
+		// 	log_warn("can not open file");
+		// 	printf("can not open file\n");
+		// 	return NULL;
+		// }
 		printf("-------sock:%d---fd:%d---total:%d\n", sock, fd, (int)filestat.st_size);
 		fd_records[sock].ffd = fd;
 		fd_records[sock].read_pos =0;
-		fd_records[sock].total_len = (int)filestat.st_size;
+
+		if(fd_records[sock].http_code != DIR_CODE) {
+			fd_records[sock].total_len = (int)filestat.st_size;
+			setnonblocking(fd);
+		}
+		strcpy(fd_records[sock].path, filename);
 
 		char content_type[16];
-		char *suffix = strrchr(filename, '.');
+		char *suffix = strrchr(filename+1, '.');
 		if(suffix == NULL) {
-			strcpy(content_type, "text/plain");
+			if(fd_records[sock].http_code == DIR_CODE)
+				strcpy(content_type, "text/html");
+			else
+				strcpy(content_type, "text/plain");
 		} else {
 			int index = mime_type_binary_search(mime_type, sizeof(mime_type)/sizeof(mime_type_t), suffix+1);
 			if(index == -1) {
@@ -225,9 +252,15 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 		printf("**** content_type:%s\n", content_type);
 		int header_length;
-		if(fd_records[sock].http_code == 200)
-			header_length = sprintf(fd_records[sock].buf, "%sContent-Type: %s\r\nContent-Length: %d\r\nConnection: Close\r\n\r\n", \
+		if(fd_records[sock].http_code == 200 || fd_records[sock].http_code == DIR_CODE) {
+			if(fd_records[sock].http_code == 200) {
+				header_length = sprintf(fd_records[sock].buf, "%sContent-Type: %s\r\nContent-Length: %d\r\nConnection: Close\r\n\r\n", \
 				header_200_ok, content_type, (int)filestat.st_size);
+			} else {
+				header_length = sprintf(fd_records[sock].buf, "%sContent-Type: %s\r\nConnection: Close\r\n\r\n", \
+				header_200_ok, content_type);
+			}
+		}	
 		else if(fd_records[sock].http_code == 404) {
 			header_length = sprintf(fd_records[sock].buf, "%sContent-Type: %s\r\nContent-Length: %d\r\nConnection: Close\r\n\r\n", \
 				header_404_not_found, content_type, (int)filestat.st_size);
@@ -239,16 +272,13 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	}
 	else {
 		printf("not a header\n");
-		fd_records[sock].ffd = NO_FILE_FD;
-		fd_records[sock].write_pos = 0;
-		fd_records[sock].total_len = 0;
-		fd_records[sock].http_code = 200;
-		fd_records[sock].read_pos = 0;
-		//info_manager.give_back_node(info);
+		clear(sock);
 		return NULL;	
 	}
 	return NULL;
 }
+
+
 
 void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 	printf("write http header ...\n");
@@ -267,6 +297,7 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 
 				close(sockfd);
 				//clear>>>>>>>>>>??????????????????
+				clear(sockfd);
 				return NULL;
 			}
 			break;
@@ -276,13 +307,87 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 			printf("[--- here ---]\n");
 			fd_records[sockfd].write_pos = 0;
 			ev_stop(loop, sockfd, EV_WRITE);
-			ev_register(loop, sockfd, EV_WRITE, write_http_body);
+			if(fd_records[sockfd].http_code != DIR_CODE)
+				ev_register(loop, sockfd, EV_WRITE, write_http_body);
+			else if(fd_records[sockfd].http_code == DIR_CODE) {
+
+				int r = process_dir_html(fd_records[sockfd].path , sockfd);
+				if(r == -1) {
+					printf("err when making dir html\n");
+					close(sockfd);
+					clear(sockfd);
+					return NULL;
+				}
+				ev_register(loop, sockfd, EV_WRITE, write_dir_html);
+			}
 			return NULL;
 		}
 	}
 	//ev_register(loop, sockfd, EV_WRITE, write_http_body);
 	return NULL;
 }
+
+void *write_dir_html(ev_loop_t *loop, int sockfd, EV_TYPE events) {
+#ifdef USE_TCP_CORK
+    int on = 0;
+    setsockopt(sockfd, SOL_TCP, TCP_CORK, &on, sizeof(on));
+#endif
+	while(1) {
+		int nwrite;
+		nwrite = write(sockfd, fd_records[sockfd].buf+fd_records[sockfd].write_pos, strlen(fd_records[sockfd].buf)-fd_records[sockfd].write_pos);
+		fd_records[sockfd].write_pos+=nwrite;
+		if(nwrite == -1) {
+			if(errno != EAGAIN)
+			{
+				log_error("write header");
+
+				close(sockfd);
+				clear(sockfd);
+				//clear>>>>>>>>>>??????????????????
+				return NULL;
+			}
+			break;
+		}
+
+		if(fd_records[sockfd].write_pos == strlen(fd_records[sockfd].buf)) {
+			printf("[--- here2 ---]\n");
+			fd_records[sockfd].write_pos = 0;
+			ev_unregister(loop, sockfd);
+			close(sockfd);
+			clear(sockfd);
+			return NULL;
+		}
+	}
+
+	return NULL;
+}
+// void *process_dir(ev_loop_t *loop, int sockfd, EV_TYPE events) {
+// 	//strcpy(fd_records[sockfd].buf, )
+// 	memset(fd_records[sockfd].buf, 0, sizeof(fd_records[sockfd].buf));
+// 	int n = sprintf(fd_records[sockfd].buf, "%s", dir_first_part);
+
+// 	int ret = dir_html_maker(fd_records[sockfd].buf+n, )
+
+// 	return NULL;
+// }
+
+
+/**
+ * return content_length
+ */
+int process_dir_html(char *path, int sockfd) {
+	
+	memset(fd_records[sockfd].buf, 0, sizeof(fd_records[sockfd].buf));
+	
+	int n = sprintf(fd_records[sockfd].buf, "%s", dir_first_part);
+	int ret = dir_html_maker(fd_records[sockfd].buf+n, path);
+	if(ret == -1)
+		return -1;
+	sprintf(fd_records[sockfd].buf+strlen(fd_records[sockfd].buf), "%s", dir_second_part);
+
+	return strlen(fd_records[sockfd].buf);
+}
+
 void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	//printf("write body\n");
 	int ffd = fd_records[sockfd].ffd;
@@ -311,13 +416,26 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	   		//>>>>>>>>>
 	   		ev_unregister(loop, sockfd);
 	   		close(sockfd);
-	    	fd_records[sockfd].ffd = NO_FILE_FD;
-			fd_records[sockfd].write_pos = 0;
-			fd_records[sockfd].total_len = 0;
-			fd_records[sockfd].read_pos = 0;
-			fd_records[sockfd].http_code = 200;	
+	   		clear(sockfd);
+	  //   	fd_records[sockfd].ffd = NO_FILE_FD;
+			// fd_records[sockfd].write_pos = 0;
+			// fd_records[sockfd].total_len = 0;
+			// fd_records[sockfd].read_pos = 0;
+			// fd_records[sockfd].http_code = 200;	
+			// memset(fd_records[sockfd].path, 0, sizeof(fd_records[sockfd].path));
 	   		return NULL;
 	    }
   	}
 	return NULL;
+}
+
+
+void clear(int sockfd) {
+	fd_records[sockfd].ffd = NO_FILE_FD;
+	fd_records[sockfd].write_pos = 0;
+	fd_records[sockfd].total_len = 0;
+	fd_records[sockfd].read_pos = 0;
+	fd_records[sockfd].http_code = 200;	
+	memset(fd_records[sockfd].path, 0, sizeof(fd_records[sockfd].path));
+	memset(fd_records[sockfd].buf, 0, MAXBUFSIZE);
 }

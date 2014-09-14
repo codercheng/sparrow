@@ -60,6 +60,7 @@ typedef struct {
 	unsigned int total_len;
 	char buf[MAXBUFSIZE];
 	int http_code;
+	char path[256];
 	//void *ptr; /*reserved pointer*/
 }fd_record_t;
 
