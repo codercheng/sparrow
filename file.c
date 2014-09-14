@@ -45,7 +45,7 @@ int block_read(char *filename, char *buf, int max_size) {
 		} else if(t == -1) {
 			printf("err read\n");
 		} else if(t == 0) {
-			printf("here\n");
+			//printf("here\n");
 			break;
 		}
 	}
