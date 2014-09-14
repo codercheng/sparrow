@@ -1,5 +1,5 @@
 /**
- * gcc -g -Wall -lpthread bitchttpd.c bitchttpd.h global.h async_log.h async_log.c ev_loop.c ev_loop.h thread_manage.h thread_manage.c -o demo -lrt
+ * gcc -g -Wall -lpthread bitchttpd.c bitchttpd.h global.h async_log.h async_log.c ev_loop.c ev_loop.h thread_manage.h thread_manage.c mime.h file.c file.h -o demo -lrt
  */
 
 #include "async_log.h"
