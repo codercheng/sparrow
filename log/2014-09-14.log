@@ -1,0 +1,8 @@
+[ 19:17:09.152047 ] INFO   8661 bitchttpd.c:87 Got connection from ip:127.0.0.1, port:52536, conn_fd:9
+[ 19:17:09.236973 ] INFO   8661 bitchttpd.c:87 Got connection from ip:127.0.0.1, port:52537, conn_fd:9
+[ 19:17:09.266873 ] INFO   8661 bitchttpd.c:87 Got connection from ip:127.0.0.1, port:52538, conn_fd:9
+[ 19:17:09.266890 ] INFO   8661 bitchttpd.c:87 Got connection from ip:127.0.0.1, port:52539, conn_fd:10
+[ 19:17:09.266899 ] INFO   8661 bitchttpd.c:87 Got connection from ip:127.0.0.1, port:52540, conn_fd:11
+[ 19:17:09.266908 ] INFO   8661 bitchttpd.c:87 Got connection from ip:127.0.0.1, port:52541, conn_fd:12
+[ 19:17:09.266917 ] INFO   8661 bitchttpd.c:87 Got connection from ip:127.0.0.1, port:52542, conn_fd:13
+[ 19:17:34.338292 ] INFO   8661 async_log.c:341 Log is going to be closed...

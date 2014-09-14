@@ -6,7 +6,7 @@
 	</head>
 	<body>
 		<div class="header">
-			<a href="http://localhost:6789/index.html" title = "home"> <img  src= "hhttp://localhost:6789/home.ico"></a> 
+			<a href="http://localhost:6789/index.html" title = "home"> <img  src= "http://localhost:6789/home.ico"></a> 
 			<a href="http://weibo.com/shuguangcheng/" target = "weibo" title = "weibo"> <img  src= "http://localhost:6789/weibo24.ico"></a>
 			<a href="https://github.com/codercheng/bitchttpd" target = "github" title = "github"> <img  src= "http://localhost:6789/github24.ico"></a>
 		</div>
