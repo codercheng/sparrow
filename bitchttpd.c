@@ -174,6 +174,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 		
 		struct stat filestat;
+		time_t last_modified_time;
 		int s = lstat(filename, &filestat);
 		if(-1 == s)	{
 			//HANDLE_ERROR("not a file or a dir");
@@ -212,58 +213,81 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				clear(sock);
 				return NULL;
 			}
-		}
-			
 
-		//set file fd to not-blocking
-		
+			last_modified_time = filestat.st_mtime;
+			//process 304 not modified
+			char *time_begin = strstr(fd_records[sock].buf, "If-Modified-Since:");
+			if(time_begin != NULL) {
+				time_begin = time_begin + sizeof("If-Modified-Since:");
+				char *time_end = strchr(time_begin, '\r');
+					// printf("end - begin :%d-\n", time_end - time_begin + 1);
+					// char temp[128];
+					// char temp2[128];
+					// snprintf(temp, time_end - time_begin + 1, "%s", time_begin);
+					// snprintf(temp2, time_end - time_begin + 1, "%s", ctime(&last_modified_time));
+					// printf("file time :%s-\n", temp2);
+					// printf("web  time :%s-\n", temp);
 
-		// if(-1 == fd) {
-		// 	//info_manager.give_back_node(info);
-		// 	log_warn("can not open file");
-		// 	printf("can not open file\n");
-		// 	return NULL;
-		// }
-		printf("-------sock:%d---fd:%d---total:%d\n", sock, fd, (int)filestat.st_size);
-		fd_records[sock].ffd = fd;
-		fd_records[sock].read_pos =0;
 
-		if(fd_records[sock].http_code != DIR_CODE) {
-			fd_records[sock].total_len = (int)filestat.st_size;
-			setnonblocking(fd);
-		}
-		strcpy(fd_records[sock].path, filename);
-
-		char content_type[16];
-		char *suffix = strrchr(filename+1, '.');
-		if(suffix == NULL) {
-			if(fd_records[sock].http_code == DIR_CODE)
-				strcpy(content_type, "text/html");
-			else
-				strcpy(content_type, "text/plain");
-		} else {
-			int index = mime_type_binary_search(mime_type, sizeof(mime_type)/sizeof(mime_type_t), suffix+1);
-			if(index == -1) {
-				strcpy(content_type, "text/plain");
-			} else {
-				strcpy(content_type, mime_type[index].l_type);
+				if(strncmp(ctime(&last_modified_time), time_begin, time_end - time_begin) == 0) {
+					printf("++++++++ 304 BEGIN ++++++++++\n");
+					fd_records[sock].http_code = 304;
+				}
 			}
 		}
 
+		char content_type[16];
+
+
+		if(fd_records[sock].http_code != 304) {
+
+			printf("-------sock:%d---fd:%d---total:%d\n", sock, fd, (int)filestat.st_size);
+			fd_records[sock].ffd = fd;
+			fd_records[sock].read_pos =0;
+
+			if(fd_records[sock].http_code != DIR_CODE) {
+				fd_records[sock].total_len = (int)filestat.st_size;
+				setnonblocking(fd);
+			}
+			strcpy(fd_records[sock].path, filename);
+
+			
+			char *suffix = strrchr(filename+1, '.');
+			if(suffix == NULL) {
+				if(fd_records[sock].http_code == DIR_CODE)
+					strcpy(content_type, "text/html");
+				else
+					strcpy(content_type, "text/plain");
+			} else {
+				int index = mime_type_binary_search(mime_type, sizeof(mime_type)/sizeof(mime_type_t), suffix+1);
+				if(index == -1) {
+					strcpy(content_type, "text/plain");
+				} else {
+					strcpy(content_type, mime_type[index].l_type);
+				}
+			}
+		}
 		printf("**** content_type:%s\n", content_type);
 		int header_length;
 		if(fd_records[sock].http_code == 200 || fd_records[sock].http_code == DIR_CODE) {
+			//file
 			if(fd_records[sock].http_code == 200) {
-				header_length = sprintf(fd_records[sock].buf, "%sContent-Type: %s\r\nContent-Length: %d\r\nConnection: Close\r\n\r\n", \
-				header_200_ok, content_type, (int)filestat.st_size);
-			} else {
-				header_length = sprintf(fd_records[sock].buf, "%sContent-Type: %s\r\nConnection: Close\r\n\r\n", \
-				header_200_ok, content_type);
+				header_length = sprintf(fd_records[sock].buf, \
+					"%sContent-Type: %s\r\nContent-Length: %d\r\nLast-Modified:%sCache-Control: max-age=%d\r\nConnection: Close\r\n\r\n", \
+					header_200_ok, content_type, (int)filestat.st_size, ctime(&last_modified_time), CacheControl_MaxAge);
+			} else {  /*folder*/
+				header_length = sprintf(fd_records[sock].buf, \
+					"%sContent-Type: %s\r\nCache-Control: max-age=%d\r\nConnection: Close\r\n\r\n", \
+					header_200_ok, content_type, CacheControl_MaxAge);
 			}
 		}	
 		else if(fd_records[sock].http_code == 404) {
-			header_length = sprintf(fd_records[sock].buf, "%sContent-Type: %s\r\nContent-Length: %d\r\nConnection: Close\r\n\r\n", \
+			header_length = sprintf(fd_records[sock].buf, \
+				"%sContent-Type: %s\r\nContent-Length: %d\r\nConnection: Close\r\n\r\n", \
 				header_404_not_found, content_type, (int)filestat.st_size);
+		}
+		else if(fd_records[sock].http_code == 304) {
+			header_length = sprintf(fd_records[sock].buf, "%s\r\n", header_304_not_modified);
 		}
 		fd_records[sock].buf[header_length] = '\0';
 		ev_stop(loop, sock, EV_READ);
@@ -306,9 +330,19 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 		if(fd_records[sockfd].write_pos == strlen(fd_records[sockfd].buf)) {
 			printf("[--- here ---]\n");
 			fd_records[sockfd].write_pos = 0;
+			
+			if(fd_records[sockfd].http_code == 304) {
+				ev_unregister(loop, sockfd);
+				close(sockfd);
+				clear(sockfd);
+				printf("+++++ 304 END ++++++\n");
+				return NULL;
+			}
+
 			ev_stop(loop, sockfd, EV_WRITE);
-			if(fd_records[sockfd].http_code != DIR_CODE)
+			if(fd_records[sockfd].http_code != DIR_CODE) {
 				ev_register(loop, sockfd, EV_WRITE, write_http_body);
+			}
 			else if(fd_records[sockfd].http_code == DIR_CODE) {
 
 				int r = process_dir_html(fd_records[sockfd].path , sockfd);

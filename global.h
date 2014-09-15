@@ -14,7 +14,7 @@
  */
 #define LISTEN_PORT 6789
 
-#define MAX_EVENT 1024
+#define MAX_EVENT 512
 #define USE_EPOLLET 1
 
 #define WORKER_THREAD_NUM 1
@@ -30,10 +30,14 @@
 //buf size must be large enough to contain the tcp recv/send buf in ET model
 #define MAXBUFSIZE 16*10224
 
+
+#define CacheControl_MaxAge 60
+
 #define header_200_ok "HTTP/1.1 200 OK\r\nServer: bitchttpd/v0.1\r\n" \
    						 "Accept-Charset: utf-8\r\nAccept-Language: en-US,en;q=0.5,zh-CN;q=0.5\r\n"
 #define header_404_not_found "HTTP/1.1 404 Not Found\r\nServer: bitchttpd/v0.1\r\n" \
    						 "Accept-Charset: utf-8\r\nAccept-Language: en-US,en;q=0.5,zh-CN;q=0.5\r\n"
+#define header_304_not_modified "HTTP/1.1 304 Not Modified\r\n Connection: Close\r\n"
 #define _DEBUG_
 
 

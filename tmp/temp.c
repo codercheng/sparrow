@@ -1,7 +1,6 @@
 /**
  * cat mime.types | awk '{printf "{\"%s\", \"%s\"},\n",v$1, $2;}' >> temp
  */
-
 #include "mime.h"
 
 
