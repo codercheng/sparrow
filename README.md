@@ -28,6 +28,8 @@
 `后续会有更高性能的测试和大文件的测试`
 
 simon@ubuntu:~/Public/project/bitchttpd$ ab -n 700 -c 500 http://127.0.0.1:6789/file.h
+
+
 This is ApacheBench, Version 2.3 <$Revision: 655654 $>
 Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
 Licensed to The Apache Software Foundation, http://www.apache.org/
