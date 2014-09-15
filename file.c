@@ -84,7 +84,7 @@ int dir_html_maker(char *buf, char *path) {
 		if(len == 0) {
 			ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"../\"><img src=\"/back.ico\">&nbsp;BACK</a></div>\n");
 		} else {
-			ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"../\"><img src=\"/back.ico\">&nbsp;BACK</a></div>\n");
+			ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"./\"><img src=\"/back.ico\">&nbsp;BACK</a></div>\n");
 		}
 		pos +=ret;
 	}
