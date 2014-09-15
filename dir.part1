@@ -2,13 +2,13 @@
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<title>Good Good Study, Day Day Up</title>
-		<link rel="stylesheet" type="text/css" href="http://localhost:6789/svnindex.css">
+		<link rel="stylesheet" type="text/css" href="/svnindex.css">
 	</head>
 	<body>
 		<div class="header">
-			<a href="http://localhost:6789/index.html" title = "home"> <img  src= "http://localhost:6789/home.ico"></a> 
-			<a href="http://weibo.com/shuguangcheng/" target = "weibo" title = "weibo"> <img  src= "http://localhost:6789/weibo24.ico"></a>
+			<a href="/index.html" title = "home"> <img  src= "/home.ico"></a> 
+			<a href="http://weibo.com/shuguangcheng/" target = "weibo" title = "weibo"> <img  src= "/weibo24.ico"></a>
 			<a href="https://github.com/codercheng/bitchttpd" target = "github" title = "github"> <img  src= "http://localhost:6789/github24.ico"></a>
 		</div>
 		<div class="svn">
-			<div class="dir"><a href="../"><img src="http://localhost:6789/back.ico">&nbsp;BACK</a></div>
+			<div class="dir"><a href="../"><img src="/back.ico">&nbsp;BACK</a></div>
