@@ -66,7 +66,29 @@ int dir_html_maker(char *buf, char *path) {
 		perror("opendir error");
 		return -1;
 	}
+
+	char prefix[64];
+	char *p = strrchr(path, '/');
+	strcpy(prefix, p+1);
+	int len = strlen(prefix);
+	if(len != 0) {
+		prefix[len] = '/';
+		prefix[len+1] = '\0';
+	}
+
 	int pos = 0;
+	int ret;
+	printf("|||||||||path:%s-\n", path);
+	if(strcmp(path, WORKING_DIR) != 0) {
+		//add back operation
+		if(len == 0) {
+			ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"../\"><img src=\"/back.ico\">&nbsp;BACK</a></div>\n");
+		} else {
+			ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"../\"><img src=\"/back.ico\">&nbsp;BACK</a></div>\n");
+		}
+		pos +=ret;
+	}
+
 	while((temp_path = readdir(dir))!=NULL) {
 		
 		if(!strcmp(temp_path->d_name,".")||!strcmp(temp_path->d_name,".."))
@@ -78,14 +100,18 @@ int dir_html_maker(char *buf, char *path) {
 			sprintf(newpath, "%s/%s", path, temp_path->d_name);
 		
 		lstat(newpath, &s);
-		int ret = 0;
+		
+		//printf("||||||||prefix:%s==\n", prefix);
+		//int ret = 0;
+		
 		if(S_ISDIR(s.st_mode)){
-			ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"%s/\"><img src=\"/dir.png\">&nbsp;%s</a></div>\n", \
-				/*newpath+strlen(WORKING_DIR)*/temp_path->d_name, temp_path->d_name);
+			ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"%s%s/\"><img src=\"/dir.png\">&nbsp;%s</a></div>\n", \
+				/*newpath+strlen(WORKING_DIR)*/prefix, temp_path->d_name, temp_path->d_name);
 			pos +=ret;
 		}else if(S_ISREG(s.st_mode)){
-			ret = sprintf(buf+pos,"<div class=\"file\"><a href=\"%s\"><img src=\"/file.ico\">&nbsp;%s</a></div>\n", \
-				/*newpath+strlen(WORKING_DIR)*/temp_path->d_name, temp_path->d_name);
+			
+			ret = sprintf(buf+pos,"<div class=\"file\"><a href=\"%s%s\"><img src=\"/file.ico\">&nbsp;%s</a></div>\n", \
+				/*newpath+strlen(WORKING_DIR)*/prefix, temp_path->d_name, temp_path->d_name);
 			pos +=ret;
 		}
 	}
