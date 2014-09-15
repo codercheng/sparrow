@@ -14,7 +14,7 @@
  */
 #define LISTEN_PORT 6789
 
-#define MAX_EVENT 500
+#define MAX_EVENT 1024
 #define USE_EPOLLET 1
 
 #define WORKER_THREAD_NUM 1
