@@ -37,7 +37,6 @@ mime_type_t mime_type[] = {
 	{"application/mac-binhex40", "hqx"},
 	{"application/msword", "doc"},
 	{"application/msword", "dot"},
-	{"application/octet-stream", "*"},
 	{"application/octet-stream", "bin"},
 	{"application/octet-stream", "class"},
 	{"application/octet-stream", "dms"},
