@@ -224,18 +224,17 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			if(time_begin != NULL) {
 				time_begin = time_begin + sizeof("If-Modified-Since:");
 				char *time_end = strchr(time_begin, '\n');
-					// printf("end - begin :%d-\n", time_end - time_begin + 1);
+					// printf("end - begin :%d-\n", time_end - time_begin);
 					// char temp[128];
 					// char temp2[128];
-					// snprintf(temp, time_end - time_begin + 1, "%s", time_begin);
-					// snprintf(temp2, time_end - time_begin + 1, "%s", ctime(&last_modified_time));
+					// snprintf(temp, time_end - time_begin, "%s", time_begin);
+					// snprintf(temp2, time_end - time_begin, "%s", ctime(&last_modified_time));
 					// printf("file time :%s-\n", temp2);
 					// printf("web  time :%s-\n", temp);
 
-
-				if(strncmp(ctime(&last_modified_time), time_begin, time_end - time_begin) == 0 && 0) {
+				if(strncmp(ctime(&last_modified_time), time_begin, time_end - time_begin -1) == 0) {
 					printf("++++++++ 304 BEGIN ++++++++++\n");
-					//fd_records[sock].http_code = 304;
+					fd_records[sock].http_code = 304;
 				}
 			}
 		}
