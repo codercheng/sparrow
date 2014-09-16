@@ -67,6 +67,8 @@ ev_loop_t *ev_create_loop(int maxevent, int et) {
 		fd_records[i].read_pos = 0;
 		fd_records[i].total_len = 0;
 		memset(fd_records[i].buf, 0, MAXBUFSIZE);
+		memset(fd_records[i].path, 0, sizeof(fd_records[i].path));
+		fd_records[i].http_code = 200;
 		// if(ptr_size == 0)
 		// 	fd_records[i].ptr = NULL;
 		// else {
@@ -160,6 +162,8 @@ int ev_unregister(ev_loop_t *loop, int fd) {
 	fd_records[fd].total_len = 0;
 	memset(fd_records[fd].buf, 0, MAXBUFSIZE);
 
+	memset(fd_records[fd].path, 0, sizeof(fd_records[fd].path));
+	fd_records[fd].http_code = 200;
 	return 0;
 }
 /**
