@@ -84,7 +84,7 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 	while((conn_fd = accept(sock, (struct sockaddr *)&client_sock, &len)) > 0)	{
 		setnonblocking(conn_fd);
 
-		log_info("Got connection from ip:%s, port:%d, conn_fd:%d\n",inet_ntoa(client_sock.sin_addr),ntohs(client_sock.sin_port), conn_fd);
+		//log_info("Got connection from ip:%s, port:%d, conn_fd:%d\n",inet_ntoa(client_sock.sin_addr),ntohs(client_sock.sin_port), conn_fd);
 		int reuse = 1;
     	setsockopt(conn_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
@@ -213,8 +213,9 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			if(fd == -1) {
 				printf("server side err!\n");
 				ev_unregister(loop, sock);
-				close(sock);
+				
 				clear(sock);
+				close(sock);
 				return NULL;
 			}
 
@@ -271,7 +272,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			}
 		}
 		printf("**** content_type:%s\n", content_type);
-		int header_length;
+		int header_length = 0;
 		printf("begin to write header to buf\n");
 		if(fd_records[sock].http_code == 200 || fd_records[sock].http_code == DIR_CODE) {
 			printf("200 0r dir\n");
@@ -305,8 +306,9 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	}
 	else {
 		printf("not a header\n");
-		clear(sock);
+		
 		ev_unregister(loop, sock);
+		clear(sock);
 		close(sock);
 		return NULL;	
 	}
@@ -331,9 +333,10 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 				log_error("write header");
 				printf("write header err\n");
 				ev_unregister(loop, sockfd);				
-				close(sockfd);
+				
 				//clear>>>>>>>>>>??????????????????
 				clear(sockfd);
+				close(sockfd);
 				return NULL;
 			}
 			break;
@@ -345,8 +348,9 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 			
 			if(fd_records[sockfd].http_code == 304) {
 				ev_unregister(loop, sockfd);
-				close(sockfd);
+				
 				clear(sockfd);
+				close(sockfd);
 				printf("+++++ 304 END ++++++\n");
 				return NULL;
 			}
@@ -361,8 +365,9 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 				if(r == -1) {
 					printf("err when making dir html\n");
 					ev_unregister(loop, sockfd);
-					close(sockfd);
+					
 					clear(sockfd);
+					close(sockfd);
 					return NULL;
 				}
 				ev_register(loop, sockfd, EV_WRITE, write_dir_html);
@@ -388,8 +393,9 @@ void *write_dir_html(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 			{
 				log_error("write header");
                 ev_unregister(loop, sockfd);
-				close(sockfd);
+				
 				clear(sockfd);
+				close(sockfd);
 				//clear>>>>>>>>>>??????????????????
 				return NULL;
 			}
@@ -400,8 +406,9 @@ void *write_dir_html(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 			printf("[--- here2 ---]\n");
 			fd_records[sockfd].write_pos = 0;
 			ev_unregister(loop, sockfd);
-			close(sockfd);
+			
 			clear(sockfd);
+			close(sockfd);
 			return NULL;
 		}
 	}
@@ -463,8 +470,9 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	   		//>>>>>>>>>
 			printf("%s--write http body end-----------\n", fd_records[sockfd].path);
 	   		ev_unregister(loop, sockfd);
-	   		close(sockfd);
 	   		clear(sockfd);
+	   		close(sockfd);
+	   		
 	  //   	fd_records[sockfd].ffd = NO_FILE_FD;
 			// fd_records[sockfd].write_pos = 0;
 			// fd_records[sockfd].total_len = 0;

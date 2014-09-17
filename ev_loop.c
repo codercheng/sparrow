@@ -208,25 +208,33 @@ int ev_stop(ev_loop_t *loop, int fd, EV_TYPE events) {
 int ev_run_loop(ev_loop_t *loop) {
 	while(1) {
 		int num;
+
+//		printf("++++++ before epoll wait +++++++\n");
 		num = epoll_wait(loop->epfd, loop->events, loop->maxevent, -1);
+//		printf("++++++ after epoll wait +++++++\n");
 		if(num == -1) {
 			fprintf(stderr, "epoll wait error\n");
 			return -1;
 		}
 		int i;
 		for(i=0; i<num; i++) {
+//			printf("num:%d\n", num);
 			int fd = loop->events[i].data.fd;
 			fd_record_t record = fd_records[fd];
-			
+//			printf("fd:%d\n", fd);
+//			printf("loop->ev:%d\n", loop->events[i].events);
+//			printf("func:%x\n", record.cb_read);
 			if(EV_READ & loop->events[i].events) {
 				(*(record.cb_read))(loop, fd, EV_READ);
 			}
+//			printf("read ev add...\n");
 			/*pre-step may have unregisterd the fd, make sure the fd is active!*/
 			if((EV_WRITE & loop->events[i].events) && fd_records[fd].active) { 
 				(*(record.cb_write))(loop, fd, EV_WRITE);
 			}
 			
 		}
+//		printf("+++++++end epoll wait++++++\n");
 	}
 }
 

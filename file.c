@@ -78,7 +78,7 @@ int dir_html_maker(char *buf, char *path) {
 
 	int pos = 0;
 	int ret;
-	printf("|||||||||path:%s-\n", path);
+//	printf("|||||||||path:%s-\n", path);
 	if(strcmp(path, WORKING_DIR) != 0) {
 		//add back operation
 		if(len == 0) {
