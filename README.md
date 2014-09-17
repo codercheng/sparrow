@@ -22,7 +22,7 @@
 
 ###note
 * 2014-9-16: fix bug of image corrupt and segment err (http_code not init)
-   
+* 2014-9-17: 解决大量请求的时候服务器崩溃。原因：clear()操作放到了close(fd)之后，在多线程的环境下，当线程1执行完了close(fd）),此时在clear之前被线程2打断，线程2重用了上面的fd，并执行后续操作，但是当线程1恢复过来继续执行clear()操作,却把fd重置了，那么线程2在执行fd相关操作的时候就会出现Segmentation Fault.(PS: 多线成环境下找到SEG ERR 发生的点还真是不容易，分析了core文件，勉强出现的信息还能看，但是不具体，为什么？)
    
 ###粗略的性能测试(700请求，并发500，1G内存，1核cpu)
 
