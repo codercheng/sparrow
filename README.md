@@ -20,6 +20,7 @@
 * 目录下输出的子目录和文件排序问题（根据阅读次数排序）
 *  close, clear , ev_unregister overlap some operations.
 *  catch control: max-age 竟然没有起到作用
+*  均衡工作线程的地方，现在用的是随机分配，增加统计每个线程中的任务数，然后分配
 
 ###note
 * 2014-9-16: fix bug of image corrupt and segment err (http_code not init)
