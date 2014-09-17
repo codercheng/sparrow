@@ -118,6 +118,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	int read_complete = 0;
 
 	int nread = 0;
+	printf("----------------------BEGIN-----------\n");
+	printf("sock:%d\n", sock);
 
 	while(1) {
 		nread = read(sock, buf+fd_records[sock].read_pos, MAXBUFSIZE - fd_records[sock].read_pos);
@@ -133,8 +135,9 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		} else if(nread == 0) {
 			//client quit
 			printf("+++++++++client quit\n");
-			
+			ev_unregister(loop, sock);
 			clear(sock);
+			close(sock);
 			return NULL;
 		}
 	}
@@ -209,6 +212,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			fd = open(filename, O_RDONLY);
 			if(fd == -1) {
 				printf("server side err!\n");
+				ev_unregister(loop, sock);
 				close(sock);
 				clear(sock);
 				return NULL;
@@ -219,25 +223,24 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			char *time_begin = strstr(fd_records[sock].buf, "If-Modified-Since:");
 			if(time_begin != NULL) {
 				time_begin = time_begin + sizeof("If-Modified-Since:");
-				char *time_end = strchr(time_begin, '\r');
-					// printf("end - begin :%d-\n", time_end - time_begin + 1);
+				char *time_end = strchr(time_begin, '\n');
+					// printf("end - begin :%d-\n", time_end - time_begin);
 					// char temp[128];
 					// char temp2[128];
-					// snprintf(temp, time_end - time_begin + 1, "%s", time_begin);
-					// snprintf(temp2, time_end - time_begin + 1, "%s", ctime(&last_modified_time));
+					// snprintf(temp, time_end - time_begin, "%s", time_begin);
+					// snprintf(temp2, time_end - time_begin, "%s", ctime(&last_modified_time));
 					// printf("file time :%s-\n", temp2);
 					// printf("web  time :%s-\n", temp);
 
-
-				if(strncmp(ctime(&last_modified_time), time_begin, time_end - time_begin) == 0) {
+				if(strncmp(ctime(&last_modified_time), time_begin, time_end - time_begin -1) == 0) {
 					printf("++++++++ 304 BEGIN ++++++++++\n");
 					fd_records[sock].http_code = 304;
 				}
 			}
 		}
 
-		char content_type[16];
-
+		char content_type[128];
+		memset(content_type, 0, sizeof(content_type));
 
 		if(fd_records[sock].http_code != 304) {
 
@@ -269,27 +272,33 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		}
 		printf("**** content_type:%s\n", content_type);
 		int header_length;
+		printf("begin to write header to buf\n");
 		if(fd_records[sock].http_code == 200 || fd_records[sock].http_code == DIR_CODE) {
+			printf("200 0r dir\n");
 			//file
 			if(fd_records[sock].http_code == 200) {
+				printf("200\n");
 				header_length = sprintf(fd_records[sock].buf, \
-					"%sContent-Type: %s\r\nContent-Length: %d\r\nLast-Modified:%sCache-Control: max-age=%d\r\nConnection: Close\r\n\r\n", \
+					"%sContent-Type: %s\nContent-Length: %d\nLast-Modified:%sCache-Control: max-age=%d\nConnection: Close\n\n", \
 					header_200_ok, content_type, (int)filestat.st_size, ctime(&last_modified_time), CacheControl_MaxAge);
+
 			} else {  /*folder*/
 				header_length = sprintf(fd_records[sock].buf, \
-					"%sContent-Type: %s\r\nCache-Control: max-age=%d\r\nConnection: Close\r\n\r\n", \
+					"%sContent-Type: %s\nCache-Control: max-age=%d\nConnection: Close\n\n", \
 					header_200_ok, content_type, CacheControl_MaxAge);
 			}
 		}	
 		else if(fd_records[sock].http_code == 404) {
 			header_length = sprintf(fd_records[sock].buf, \
-				"%sContent-Type: %s\r\nContent-Length: %d\r\nConnection: Close\r\n\r\n", \
+				"%sContent-Type: %s\nContent-Length: %d\nConnection: Close\n\n", \
 				header_404_not_found, content_type, (int)filestat.st_size);
 		}
 		else if(fd_records[sock].http_code == 304) {
-			header_length = sprintf(fd_records[sock].buf, "%s\r\n", header_304_not_modified);
+			header_length = sprintf(fd_records[sock].buf, "%s\n", header_304_not_modified);
 		}
+		printf("len:%d, read_http_end\n", header_length);
 		fd_records[sock].buf[header_length] = '\0';
+
 		ev_stop(loop, sock, EV_READ);
 		ev_register(loop, sock, EV_WRITE, write_http_header);
 		
@@ -297,6 +306,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	else {
 		printf("not a header\n");
 		clear(sock);
+		ev_unregister(loop, sock);
+		close(sock);
 		return NULL;	
 	}
 	return NULL;
@@ -318,7 +329,8 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 			if(errno != EAGAIN)
 			{
 				log_error("write header");
-
+				printf("write header err\n");
+				ev_unregister(loop, sockfd);				
 				close(sockfd);
 				//clear>>>>>>>>>>??????????????????
 				clear(sockfd);
@@ -348,6 +360,7 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 				int r = process_dir_html(fd_records[sockfd].path , sockfd);
 				if(r == -1) {
 					printf("err when making dir html\n");
+					ev_unregister(loop, sockfd);
 					close(sockfd);
 					clear(sockfd);
 					return NULL;
@@ -374,7 +387,7 @@ void *write_dir_html(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 			if(errno != EAGAIN)
 			{
 				log_error("write header");
-
+                ev_unregister(loop, sockfd);
 				close(sockfd);
 				clear(sockfd);
 				//clear>>>>>>>>>>??????????????????
@@ -423,7 +436,7 @@ int process_dir_html(char *path, int sockfd) {
 }
 
 void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
-	//printf("write body\n");
+	printf("write http body...\n");
 	int ffd = fd_records[sockfd].ffd;
 	//printf("sock:%d---ffd:%d---total:%d\n", sockfd, ffd, fd_records[sockfd].total_len);
 	while(1) {
@@ -448,6 +461,7 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	      	// 读写完毕
 	   		close(ffd);
 	   		//>>>>>>>>>
+			printf("%s--write http body end-----------\n", fd_records[sockfd].path);
 	   		ev_unregister(loop, sockfd);
 	   		close(sockfd);
 	   		clear(sockfd);
@@ -465,6 +479,10 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 
 
 void clear(int sockfd) {
+	fd_records[sockfd].active = 0;
+	fd_records[sockfd].events = 0;
+	fd_records[sockfd].cb_read = NULL;
+	fd_records[sockfd].cb_write = NULL;
 	fd_records[sockfd].ffd = NO_FILE_FD;
 	fd_records[sockfd].write_pos = 0;
 	fd_records[sockfd].total_len = 0;

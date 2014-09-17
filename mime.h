@@ -163,6 +163,8 @@ mime_type_t mime_type[] = {
 	{"image/jpeg", "jpe"},
 	{"image/jpeg", "jpeg"},
 	{"image/jpeg", "jpg"},
+	{"image/png", "png"},
+	{"image/png", "PNG"},
 	{"image/pipeg", "jfif"},
 	{"image/svg+xml", "svg"},
 	{"image/tiff", "tif"},
