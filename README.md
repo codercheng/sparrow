@@ -17,8 +17,9 @@
 
 ###待续...
 * bug:当目录下文件过大时，buf溢出问题
-* 目录下输出的子目录和文件排序问题
+* 目录下输出的子目录和文件排序问题（根据阅读次数排序）
 *  close, clear , ev_unregister overlap some operations.
+*  catch control: max-age 竟然没有起到作用
 
 ###note
 * 2014-9-16: fix bug of image corrupt and segment err (http_code not init)
