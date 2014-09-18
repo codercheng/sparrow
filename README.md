@@ -21,6 +21,8 @@
 *  close, clear , ev_unregister overlap some operations.
 *  catch control: max-age 竟然没有起到作用
 *  均衡工作线程的地方，现在用的是随机分配，增加统计每个线程中的任务数，然后分配
+* how to reduce time_wait in server side? May be it will work that [close() when finishing a request in server side --> register EV_READ.
+ send connection close in http header, thus client closing the conn actively!]
 
 ###note
 * 2014-9-16: fix bug of image corrupt and segment err (http_code not init)
