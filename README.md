@@ -26,6 +26,7 @@
 * 当连接超过max_event时会发生数组溢出而崩溃，所以需要限制连接，设置一个最大值。
 * chunked 编码支持
 * bug: 多线程环境下，高并发的时候会出现 epoll_ctl add 出错，报错File    exist。单线程不会出错，肯定是多线程的时候某个地方没考虑到
+* 增加一个日志开关，可以选择
 
 ###Note
 * 2014-9-16: fix bug of image corrupt and segment err (http_code not init)
