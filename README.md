@@ -27,6 +27,7 @@
 * chunked 编码支持
 * bug: 多线程环境下，高并发的时候会出现 epoll_ctl add 出错，报错File  exist。
 error in multithreaded program "epollControl: does not exist (No such file or directory)"单线程不会出错，肯定是多线程的时候某个地方没考虑到. **epoll_ctl man page tells me that the reason for this error is:"ENOENT: op was EPOLL_CTL_MOD or EPOLL_CTL_DEL, and fd is not in epfd."**
+_错误是连接退出是active应该没有被重置_
 * 增加一个日志开关，可以选择
 
 ###Note
