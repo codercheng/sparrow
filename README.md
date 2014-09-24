@@ -25,7 +25,8 @@
 * how to reduce time_wait in server side? May be it will work that [close() when finishing a request in server side -->   register EV_READ. send connection close in http header, thus client closing the conn actively!]
 * 当连接超过max_event时会发生数组溢出而崩溃，所以需要限制连接，设置一个最大值。
 * chunked 编码支持
-* bug: 多线程环境下，高并发的时候会出现 epoll_ctl add 出错，报错File    exist。单线程不会出错，肯定是多线程的时候某个地方没考虑到
+* bug: 多线程环境下，高并发的时候会出现 epoll_ctl add 出错，报错File  exist。
+error in multithreaded program "epollControl: does not exist (No such file or directory)"单线程不会出错，肯定是多线程的时候某个地方没考虑到. **epoll_ctl man page tells me that the reason for this error is:"ENOENT: op was EPOLL/_CTL/_MOD or EPOLL/_CTL/_DEL, and fd is not in epfd."**
 * 增加一个日志开关，可以选择
 
 ###Note
