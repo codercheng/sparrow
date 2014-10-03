@@ -10,7 +10,7 @@
 
 
 #include "ev_loop.h"
-#include "async_log.h"
+//#include "bitchttpd.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,9 +51,9 @@ ev_loop_t *ev_create_loop(int maxevent, int et) {
 	LOCK(lock_);
 	if(fd_records == NULL) {
 		fd_records = (fd_record_t *)malloc(maxevent * sizeof(fd_record_t));
-		//printf("init\n");
+		printf("init\n");
 	}
-	//printf("after init\n");
+	printf("after init\n");
 	UNLOCK(lock_);
 	int i;
 	for(i=0; i<maxevent; i++) {
@@ -67,8 +67,13 @@ ev_loop_t *ev_create_loop(int maxevent, int et) {
 		fd_records[i].read_pos = 0;
 		fd_records[i].total_len = 0;
 		memset(fd_records[i].buf, 0, MAXBUFSIZE);
-		memset(fd_records[i].path, 0, sizeof(fd_records[i].path));
-		fd_records[i].http_code = 200;
+		// if(ptr_size == 0)
+		// 	fd_records[i].ptr = NULL;
+		// else {
+		// 	fd_records[i].ptr = (void *)malloc(sizeof(sock_info_t));
+		// 	//memset(fd_records[i].ptr, 0, ptr_size);
+		// }
+
 	}
 	return loop;
 }
@@ -90,12 +95,12 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb) {
 	 * events registerd already, just change the cb
 	 */
 	if((fd_records[fd].events & events) == events) {
-		//printf("ev_registered already\n");;
+		printf("ev_registered already\n");;
 		if(fd_records[fd].events & EV_READ) {
 			fd_records[fd].cb_read = cb;
 		}
 		if(fd_records[fd].events & EV_WRITE) {
-		//	printf("+++++++++EV_WRITE++++++++\n");
+			printf("+++++++++EV_WRITE++++++++\n");
 			fd_records[fd].cb_write = cb;
 		}
 	} else {     /*new add event*/
@@ -114,27 +119,22 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb) {
 			ev.events |= EPOLLET;
 		}
 		ev.data.fd = fd;
-		if(events == EV_READ)
-			fd_records[fd].active = 0;
-		else if(events == EV_WRITE)
-		 	fd_records[fd].active = 1;
-
+		
 		if(fd_records[fd].active) {/*mod*/
 			if(-1 == epoll_ctl(loop->epfd, EPOLL_CTL_MOD, fd, &ev)) {
-				fprintf(stderr, "epoll_ctl mod in ev_register: %s\n", strerror(errno));
-				
+				fprintf(stderr, "epoll_ctl mod in ev_register\n");
 				return -1;
 			}
 		} else {/*add*/
 			if(-1 == epoll_ctl(loop->epfd, EPOLL_CTL_ADD, fd, &ev)) {
-				fprintf(stderr, "epoll_ctl add in ev_register: %s\n", strerror(errno));
-				
+				fprintf(stderr, "epoll_ctl add in ev_register\n");
 				return -1;
 			}
 		}
 
 	}
 	
+
 	fd_records[fd].active = 1;
 	return 0;
 }
@@ -146,16 +146,28 @@ int ev_unregister(ev_loop_t *loop, int fd) {
 	struct epoll_event ev;
 	if(-1 == epoll_ctl(loop->epfd, EPOLL_CTL_DEL, fd, &ev)) {
 		fprintf(stderr, "epoll_ctl mod in ev_unregister\n");
-		ev_clear(fd);
 		return -1;
 	}
-	ev_clear(fd);
+	fd_records[fd].active = 0;
+	fd_records[fd].events = 0;
+	fd_records[fd].cb_read = NULL;
+	fd_records[fd].cb_write = NULL;
+	//fd_records[fd].ptr = NULL;
+	//
+	fd_records[fd].ffd = NO_FILE_FD;
+	fd_records[fd].write_pos = 0;
+	fd_records[fd].read_pos = 0;
+	fd_records[fd].total_len = 0;
+	memset(fd_records[fd].buf, 0, MAXBUFSIZE);
+
 	return 0;
 }
 /**
  * stop the events on the fd, not unregister the fd
  */
 int ev_stop(ev_loop_t *loop, int fd, EV_TYPE events) {
+
+	printf("1>%d\n", fd_records[fd].events);
 	/*fd in use, and evnets on fd*/
 	if(fd_records[fd].active && (fd_records[fd].events & events)) {
 		if((fd_records[fd].events & EV_READ) && (events & EV_READ)) {
@@ -164,7 +176,8 @@ int ev_stop(ev_loop_t *loop, int fd, EV_TYPE events) {
 		if((fd_records[fd].events & EV_WRITE) && (events & EV_WRITE)) {
 			fd_records[fd].events &= (~EV_WRITE);
 		}
-	
+		printf("2>%d\n", fd_records[fd].events);
+
 		struct epoll_event ev;
 		ev.events = fd_records[fd].events;
 		if(loop->etmodel) {
@@ -174,14 +187,13 @@ int ev_stop(ev_loop_t *loop, int fd, EV_TYPE events) {
 
 		if(-1 == epoll_ctl(loop->epfd, EPOLL_CTL_MOD, fd, &ev)) {
 			fprintf(stderr, "epoll_ctl mod in ev_stop\n");
-			ev_clear(fd);
 			return -1;
 		}
-
-		// if(!(fd_records[fd].events & EV_READ || fd_records[fd].events &EV_WRITE)) {
-		// 	//printf("here...\n");
-		// 	//return ev_unregister(loop, fd);
-		// }
+		printf("3>%d\n", fd_records[fd].events);
+		if(!(fd_records[fd].events & EV_READ || fd_records[fd].events &EV_WRITE)) {
+			printf("here...\n");
+			//return ev_unregister(loop, fd);
+		}
 	}
 	return 0;
 }
@@ -194,18 +206,14 @@ int ev_run_loop(ev_loop_t *loop) {
 		int num;
 		num = epoll_wait(loop->epfd, loop->events, loop->maxevent, -1);
 		if(num == -1) {
-			/**
-			 * fix gbd can not run 
-			 */
-			if(errno == EINTR)
-				continue;
-			fprintf(stderr, "epoll wait error: %s\n", strerror(errno));
+			fprintf(stderr, "epoll wait error\n");
 			return -1;
 		}
 		int i;
 		for(i=0; i<num; i++) {
 			int fd = loop->events[i].data.fd;
 			fd_record_t record = fd_records[fd];
+			
 			if(EV_READ & loop->events[i].events) {
 				(*(record.cb_read))(loop, fd, EV_READ);
 			}
@@ -253,6 +261,7 @@ int tcp_server(int port) {
 		fprintf(stderr, "listen err\n");
 		return -1;
 	}
+	//printf("listen fd:%d\n", listen_sock);
 	return listen_sock;
 
 }
@@ -270,17 +279,4 @@ int setnonblocking(int fd) {
 }
 
 
-void ev_clear(int fd) {
-	fd_records[fd].active = 0;
-	fd_records[fd].events = 0;
-	fd_records[fd].cb_read = NULL;
-	fd_records[fd].cb_write = NULL;
-	fd_records[fd].ffd = NO_FILE_FD;
-	fd_records[fd].write_pos = 0;
-	fd_records[fd].total_len = 0;
-	fd_records[fd].read_pos = 0;
-	fd_records[fd].http_code = 200;	
-	memset(fd_records[fd].path, 0, sizeof(fd_records[fd].path));
-	memset(fd_records[fd].buf, 0, MAXBUFSIZE);
-}
 

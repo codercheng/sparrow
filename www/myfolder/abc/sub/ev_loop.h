@@ -72,7 +72,7 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb);
 int ev_unregister(ev_loop_t *loop, int fd);
 int ev_stop(ev_loop_t *loop, int fd, EV_TYPE events);
 int ev_run_loop(ev_loop_t *loop);
-void ev_clear(int fd);
+
 
 int tcp_server(int port);
 int setnonblocking(int fd);

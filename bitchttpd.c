@@ -1,3 +1,7 @@
+/**
+ * gcc -g -Wall -lpthread bitchttpd.c bitchttpd.h global.h async_log.h async_log.c ev_loop.c ev_loop.h thread_manage.h thread_manage.c mime.h file.c file.h -o demo -lrt
+ */
+
 #include "async_log.h"
 #include "ev_loop.h"
 #include "global.h"
@@ -185,11 +189,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		strncpy(path, buf+1+4, len);
 		path[len] = '\0';        //can not forget
 		
-		//defualt home page
-		if(strcmp(path, "") == 0) {
-			sprintf(path, "/%s", conf.def_home_page);
-		}
-		
+
 		char *prefix = work_dir;
 		char filename[256];//full path
 		strncpy(filename, prefix, strlen(prefix));

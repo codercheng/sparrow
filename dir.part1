@@ -2,12 +2,12 @@
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<title>Good Good Study, Day Day Up</title>
-		<link rel="stylesheet" type="text/css" href="/svnindex.css">
+		<link rel="stylesheet" type="text/css" href="/.res/dir.css">
 	</head>
 	<body>
 		<div class="header">
-			<a href="/" title = "home"> <img  src= "/home.ico"></a> 
-			<a href="http://weibo.com/shuguangcheng/" target = "weibo" title = "weibo"> <img  src= "/weibo24.ico"></a>
-			<a href="https://github.com/codercheng/bitchttpd" target = "github" title = "github"> <img  src= "/github24.ico"></a>
+			<a href="/" title = "home"> <img  src= "/.res/home.ico"></a> 
+			<a href="http://weibo.com/shuguangcheng/" target = "weibo" title = "weibo"> <img  src= "/.res/weibo24.ico"></a>
+			<a href="https://github.com/codercheng/sparrow" target = "github" title = "github"> <img  src= "/.res/github24.ico"></a>
 		</div>
-		<div class="svn">
+		<div class="mainframe">

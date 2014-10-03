@@ -1,4 +1,5 @@
-
+#ifndef _FILE_H
+#define _FILE_H
 
 typedef struct {
 	char path[256];
@@ -12,4 +13,8 @@ int isItFolder(const char *path);
 int isItFile(const char *path);
 
 int block_read(char *filename, char *buf, int max_size);
+
 int dir_html_maker(char *buf, char *path);
+
+
+#endif

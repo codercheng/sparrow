@@ -2,7 +2,9 @@
 #include "async_log.h"
 #include "thread_manage.h"
 #include "global.h"
-#include "bitchttpd.h"
+#include "sparrow.h"
+#include "config.h"
+
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -11,10 +13,13 @@
 
 static
 void * worker_threads_entrance(void *arg) {
-	log_info("ready to enter the loop...");
 	ev_loop_t *loop = (ev_loop_t *)arg;
 	if(loop == NULL) {
-		printf("wo cao\n");
+		if(conf.log_enable) {
+			log_error("loop is empty\n");
+		} else {
+			fprintf(stderr,"loop is empty\n");
+		}
 	}
 	ev_run_loop(loop);
 	return NULL;
@@ -24,18 +29,22 @@ void worker_threads_destroy() {
 }
 
 int worker_threads_init(int thread_num) {
-	log_info("enter worker_init...");
+	//log_info("enter worker_init...");
 	worker_threads_queue = (pthread_t *)malloc(thread_num * sizeof(pthread_t));
 	ev_loop_queue = (ev_loop_t **)malloc(thread_num * sizeof(ev_loop_t*));
 
 	int i, ret;
 	for(i=0; i<thread_num; i++) {
 		
-		ev_loop_queue[i] = ev_create_loop(MAX_EVENT, USE_EPOLLET);
+		ev_loop_queue[i] = ev_create_loop(conf.max_event, conf.use_epoll_et);
 
 		ret = pthread_create(&(worker_threads_queue[i]), NULL, worker_threads_entrance, (void *)ev_loop_queue[i]);
 		if(ret < 0)	{
-			log_error("thread init create err");
+			if(conf.log_enable) {
+				log_error("thread init create err\n");
+			} else {
+				fprintf(stderr,"thread init create err\n");
+			}
 			worker_threads_destroy();
 			return -1;
 		}
