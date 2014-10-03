@@ -16,8 +16,8 @@
 #include "async_log.h"
 
 
-int g_time_out_sec = 5;
-int g_min_log_level = LOG_TRACE;
+int g_time_out_sec;
+int g_min_log_level;
 
 
 static log_buf_t *w_buf;
