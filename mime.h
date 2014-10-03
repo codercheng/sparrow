@@ -6,7 +6,7 @@
 typedef struct {
 	char l_type[64];
 	char s_type[16];
-}mime_type_t;
+} mime_type_t;
 
 int cmp(const void *a, const void *b) {
 	return strcmp((*(mime_type_t *)a).s_type, (*(mime_type_t *)b).s_type);
