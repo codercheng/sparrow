@@ -30,8 +30,6 @@
 ###待续...
    * bug:当目录下文件过大时，buf溢出问题
    * 目录下输出的子目录和文件排序问题（根据阅读次数排序）
-   *  close, clear , ev_unregister overlap some operations.
-   *  catch control: max-age 竟然没有起到作用
    *  均衡工作线程的地方，现在用的是随机分配，增加统计每个线程中的任务数，然后分配
    * how to reduce time\_wait in server side? May be it will work that [close() when finishing a request in server side -->   register EV\_READ. send connection close in http header, thus client closing the conn actively!]
    * 当连接超过max_event时会发生数组溢出而崩溃，所以需要限制连接，设置一个最大值。
