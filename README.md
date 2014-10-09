@@ -37,10 +37,10 @@ error in multithreaded program "epollControl: does not exist (No such file or di
 _错误是连接退出是active应该没有被重置_
 * 2014-10-3:增加了配置文件，并重构了代码，tag v0.09
    
-###性能测试(_sparrow vs nginx_)
+###性能测试(_sparrow VS nginx_)
 `note: 这并不是一个公平的性能对比，由于本人对nginx并不是那么的熟，nginx基本上就是用的默认的配置，而且nginx的版本也不是很新。以下对比仅仅是一个粗略的参考`
-
-####ab 
+-----------------
+####ab 测试
 `ab -n 10000 -c 500 http://127.0.0.1:xxxx/`
 
 __sparrow__
@@ -51,8 +51,8 @@ __nginx__
 
 ![nginx_ab](performance_test/nginx_ab.png)
 
-
-####webbench
+------------------
+####webbench 测试
 `webbench -c 500 -t 60 http://127.0.0.1:xxxx/`
 
 __sparrow__
