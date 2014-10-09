@@ -1,4 +1,4 @@
-#Sparrow V0.1
+#Sparrow
 ![sparrow](www/.res/logo.png)
 
 
