@@ -60,7 +60,7 @@ _错误是连接退出是active应该没有被重置_
 
 *sparrow
 
-![sparrow_webb](performance_test/sparrow_webbecnch.png)
+![sparrow_webb](performance_test/sparrow_webbench.png)
 
 *nginx
 
