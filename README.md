@@ -40,6 +40,8 @@ _错误是连接退出是active应该没有被重置_
 ###性能测试(_sparrow VS nginx_)
 _note: 这并不是一个公平的性能对比，由于本人对nginx并不是那么的熟，nginx基本上就是用的默认的配置，而且nginx的版本也不是很新。以下对比仅仅是一个粗略的参考_
 
+`cpu: Intel(R) Core(TM) i3-2100 CPU @ 3.10GHz , 4 cores; mem: 1G`
+
 -----------------
 ####ab 测试
 `ab -n 10000 -c 500 http://127.0.0.1:xxxx/`
