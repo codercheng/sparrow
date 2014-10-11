@@ -115,8 +115,8 @@ int read_config(config_t *conf) {
 		if(ret != -1) {
 			if(IS_EQUAL(key, "listen_port")) {
 				conf->listen_port = atoi(value);
-			} else if(IS_EQUAL(key, "max_event")) {
-				conf->max_event = atoi(value);
+			} else if(IS_EQUAL(key, "max_conn")) {
+				conf->max_conn = atoi(value);
 			} else if(IS_EQUAL(key, "use_epoll_et")) {
 				conf->use_epoll_et = atoi(value);
 			} else if(IS_EQUAL(key, "use_tcp_cork")) {

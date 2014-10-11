@@ -36,7 +36,7 @@ int worker_threads_init(int thread_num) {
 	int i, ret;
 	for(i=0; i<thread_num; i++) {
 		
-		ev_loop_queue[i] = ev_create_loop(conf.max_event, conf.use_epoll_et);
+		ev_loop_queue[i] = ev_create_loop(conf.max_conn, conf.use_epoll_et);
 
 		ret = pthread_create(&(worker_threads_queue[i]), NULL, worker_threads_entrance, (void *)ev_loop_queue[i]);
 		if(ret < 0)	{

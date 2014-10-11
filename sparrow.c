@@ -65,7 +65,7 @@ int main()
 		}
 		return -1;
 	}
-	listen_loop = ev_create_loop(conf.max_event, 1);
+	listen_loop = ev_create_loop(conf.max_conn, 1);
 	int ret = ev_register(listen_loop, listen_sock, EV_READ, accept_sock);
 	if(ret == -1) {
 		if(conf.log_enable) {
@@ -96,6 +96,18 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 	socklen_t len = sizeof(client_sock);
 	int conn_fd;
 	while((conn_fd = accept(sock, (struct sockaddr *)&client_sock, &len)) > 0)	{
+		/*limit the connection*/
+		if(conn_fd >= conf.max_conn) {
+			if(conf.log_enable) {
+				log_warn("Too many connections come, exceeds the maximum num of the configuration!\n");
+			} else {
+				fprintf(stderr, "Warn: too many connections come, exceeds the maximum num of the configuration!\n");
+			}
+
+			close(conn_fd);
+			return NULL;
+		}
+
 		setnonblocking(conn_fd);
 
 		//log_info("Got connection from ip:%s, port:%d, conn_fd:%d\n",inet_ntoa(client_sock.sin_addr),ntohs(client_sock.sin_port), conn_fd);

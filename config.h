@@ -31,7 +31,7 @@ extern "C"
 
 typedef struct {
 	int listen_port;
-	int max_event;
+	int max_conn;
 	int use_epoll_et;
 	int use_tcp_cork;
 
