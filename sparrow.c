@@ -6,6 +6,7 @@
 #include "mime.h"
 #include "file.h"
 #include "config.h"
+#include "url.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -200,6 +201,9 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		//defualt home page
 		if(strcmp(path, "") == 0) {
 			sprintf(path, "/%s", conf.def_home_page);
+		} else {
+			/*decode, 解决url中包含中文被转码的问题*/
+			url_decode(path, strlen(path));
 		}
 		
 		char *prefix = work_dir;
@@ -461,7 +465,6 @@ void *write_dir_html(ev_loop_t *loop, int sockfd, EV_TYPE events) {
  * return content_length
  */
 int process_dir_html(char *path, int sockfd) {
-	
 	memset(fd_records[sockfd].buf, 0, sizeof(fd_records[sockfd].buf));
 	
 	int n = sprintf(fd_records[sockfd].buf, "%s", dir_first_part);
