@@ -18,7 +18,8 @@ config_t conf = {
 	DEF_LOG_TIME_OUT,
 	DEF_LOG_LEVEL,
 	DEF_WORKER_THREAD_NUM,
-	DEF_HOME_PAGE
+	DEF_HOME_PAGE,
+	DEF_MAX_SUB_ITEM_NUM
 };
 /////////////////////////////////////////////////
 
@@ -140,6 +141,8 @@ int read_config(config_t *conf) {
 				conf->log_enable = atoi(value);
 			} else if(IS_EQUAL(key, "default_home_page")) {
 				strcpy(conf->def_home_page, value);
+			} else if(IS_EQUAL(key, "max_sub_item_num"))  {
+				conf->max_sub_item_num = atoi(value);
 			} else {
 				continue;
 			}

@@ -3,7 +3,7 @@
 
 typedef struct {
 	char path[256];
-	//time_t m_time;//modify time
+	time_t m_time;//modify time
 	int dir;
 	int size;
 } item_t;
@@ -11,6 +11,8 @@ typedef struct {
 int isItFolder(const char *path);
 
 int isItFile(const char *path);
+
+void get_parent_path(char *path, char *parent);
 
 int block_read(char *filename, char *buf, int max_size);
 

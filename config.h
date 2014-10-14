@@ -27,6 +27,8 @@ extern "C"
 #define DEF_WORKER_THREAD_NUM 3
 #define DEF_HOME_PAGE "index.html"
 
+#define DEF_MAX_SUB_ITEM_NUM 100
+
 #define IS_EQUAL(str1, str2) strncmp(str1, str2, strlen(str2))== 0
 
 typedef struct {
@@ -47,6 +49,9 @@ typedef struct {
 	int worker_thread_num;
 
 	char def_home_page[128];
+	
+	//folder
+	int max_sub_item_num;
 
 } config_t;
 

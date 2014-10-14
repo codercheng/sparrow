@@ -6,7 +6,7 @@
 #define TCP_SEND_BUF 16*1024
 
 //buf size must be large enough to contain the tcp recv/send buf in ET model
-#define MAXBUFSIZE 16*1024
+#define MAXBUFSIZE 64*1024
 
 
 #define header_200_ok "HTTP/1.1 200 OK\nServer: Sparrow/v0.1\n" \

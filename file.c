@@ -1,5 +1,5 @@
 #include <stdio.h>
-
+#include <stdlib.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -13,6 +13,17 @@
 #include "async_log.h"
 
 
+
+static
+int items_cmp(const void *a, const void *b) {
+	item_t *p1 = (item_t *)a;
+	item_t *p2 = (item_t *)b;
+	if(p1->dir != p2->dir) {
+		return (p1->dir > p2->dir)?-1:1;
+	} else {
+		return (p1->m_time > p2->m_time)?-1:1;
+	}
+}
 
 int isItFolder(const char *path){
 	struct stat s;
@@ -30,6 +41,21 @@ int isItFile(const char *path){
 			return 1;
 	}
 	return 0;
+}
+
+/*
+ * get the parent path, 
+ * e.g. ./www/fdler --> ./www/
+ */
+void get_parent_path(char *path, char *parent) {
+	char *p;
+	strcpy(parent, path);
+	int len = strlen(parent);
+	if(parent[len-1] == '/') {
+		parent[len-1] = '\0';
+	}
+	p = strrchr(parent, '/');
+	parent[p - parent + 1] = '\0';
 }
 
 int block_read(char *filename, char *buf, int max_size) {
@@ -65,6 +91,9 @@ int block_read(char *filename, char *buf, int max_size) {
 
 
 int dir_html_maker(char *buf, char *path) {
+	/*buf - dir_first_part - dir_second_part*/
+	int max_len_limit = MAXBUFSIZE - 1024 - 512;
+
 	struct dirent *temp_path;
 	struct stat s;
 	DIR *dir;
@@ -102,6 +131,11 @@ int dir_html_maker(char *buf, char *path) {
 		pos +=ret;
 	}
 
+	int max_item_num = conf.max_sub_item_num;
+	//set the maximum value of items
+	item_t * items = (item_t *)malloc(max_item_num * sizeof(item_t));
+	int item_cnt = 0;
+
 	while((temp_path = readdir(dir))!=NULL) {
 		
 		if(!strcmp(temp_path->d_name,".")||!strcmp(temp_path->d_name,"..") || !strcmp(temp_path->d_name, ".res"))
@@ -114,17 +148,53 @@ int dir_html_maker(char *buf, char *path) {
 		
 		lstat(newpath, &s);
 		
-		if(S_ISDIR(s.st_mode)){
-			ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"%s%s/\"><img src=\"/.res/dir.png\">&nbsp;%s</a></div>\n", \
-							prefix, temp_path->d_name, temp_path->d_name);
-			pos +=ret;
-		}else if(S_ISREG(s.st_mode)){
+		if(S_ISDIR(s.st_mode)) {
+			sprintf(items[item_cnt].path,"%s", temp_path->d_name);
+			items[item_cnt].dir = 1;
+			items[item_cnt].size = s.st_size;
+			items[item_cnt].m_time = s.st_mtime;
+			item_cnt++;
+		} else if(S_ISREG(s.st_mode)) {
+			sprintf(items[item_cnt].path, "%s", temp_path->d_name);
+			items[item_cnt].dir = 0;
+			items[item_cnt].size = s.st_size;
+			items[item_cnt].m_time = s.st_mtime;
+			item_cnt++;
+		}
+
+		//make sure the newest item will be included.
+		if(item_cnt >= max_item_num) {
+			break;
+		}
+		// if(S_ISDIR(s.st_mode)){
+		// 	ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"%s%s/\"><img src=\"/.res/dir.png\">&nbsp;%s</a></div>\n", \
+		// 					prefix, temp_path->d_name, temp_path->d_name);
+		// 	pos +=ret;
+		// }else if(S_ISREG(s.st_mode)){
 			
+		// 	ret = sprintf(buf+pos,"<div class=\"file\"><a href=\"%s%s\"><img src=\"/.res/file.ico\">&nbsp;%s</a></div>\n", \
+		// 					prefix, temp_path->d_name, temp_path->d_name);
+		// 	pos +=ret;
+		// }
+	}
+	closedir(dir);
+
+	qsort(items, item_cnt, sizeof(item_t), items_cmp);
+	int i;
+	for(i=0; i<item_cnt; i++) { 
+		if(pos+256 > max_len_limit)
+			break;
+		if(items[i].dir) {
+			ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"%s%s/\"><img src=\"/.res/dir.png\">&nbsp;%s</a></div>\n", \
+								prefix, items[i].path, items[i].path);
+			pos += ret;
+		} else {
 			ret = sprintf(buf+pos,"<div class=\"file\"><a href=\"%s%s\"><img src=\"/.res/file.ico\">&nbsp;%s</a></div>\n", \
-							prefix, temp_path->d_name, temp_path->d_name);
+							prefix, items[i].path, items[i].path);
 			pos +=ret;
 		}
 	}
-	closedir(dir);
+
+	free(items);
 	return 0;
 }
