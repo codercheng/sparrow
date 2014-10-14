@@ -16,7 +16,7 @@ thread_manage.o: thread_manage.c thread_manage.h sparrow.h global.h async_log.h 
 ev_loop.o: ev_loop.c ev_loop.h async_log.h
 	$(CC) $(CFLAGS) ev_loop.c
 
-file.o: file.c file.h
+file.o: file.c file.h async_log.h config.h global.h
 	$(CC) $(CFLAGS) file.c
 
 async_log.o: async_log.c async_log.h
