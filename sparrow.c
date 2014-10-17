@@ -277,18 +277,23 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 			
 			char *suffix = strrchr(filename+1, '.');
-			if(suffix == NULL) {
-				if(fd_records[sock].http_code == DIR_CODE)
-					strcpy(content_type, "text/html");
-				else
-					strcpy(content_type, "text/plain");
-			} else {
-				int index = mime_type_binary_search(mime_type, sizeof(mime_type)/sizeof(mime_type_t), suffix+1);
-				if(index == -1) {
-					strcpy(content_type, "text/plain");
+			/*the type of dir must be "text/html"*/
+			if(fd_records[sock].http_code != DIR_CODE) {
+				if(suffix == NULL) {
+					if(fd_records[sock].http_code == DIR_CODE)
+						strcpy(content_type, "text/html");
+					else
+						strcpy(content_type, "text/plain");
 				} else {
-					strcpy(content_type, mime_type[index].l_type);
+					int index = mime_type_binary_search(mime_type, sizeof(mime_type)/sizeof(mime_type_t), suffix+1);
+					if(index == -1) {
+						strcpy(content_type, "text/plain");
+					} else {
+						strcpy(content_type, mime_type[index].l_type);
+					}
 				}
+			} else {
+				strcpy(content_type, "text/html");
 			}
 		}
 
