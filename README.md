@@ -47,12 +47,13 @@
    * 2014-10-15:fix bug:__目录下输出的子目录和文件排序问题__
    * 2014-10-17:fix bug:目录名中含有小数点'.'访问出错
 
-###性能测试(_sparrow VS nginx_)
+##性能测试(offline/online)(_sparrow VS nginx_)
 _note: 这并不是一个公平的性能对比，由于本人对nginx并不是那么的熟，nginx基本上就是用的默认的配置，而且nginx的版本也不是很新。以下对比仅仅是一个粗略的参考_
 
 `cpu: Intel(R) Core(TM) i3-2100 CPU @ 3.10GHz , 4 cores; mem: 1G`
 
 -----------------
+##Offline
 ####ab 测试
 `ab -n 10000 -c 500 http://127.0.0.1:xxxx/`
 
@@ -75,4 +76,29 @@ __sparrow__
 __nginx__
 
 ![nginx_webb](performance_test/nginx_webbench.png)
+-----------------
+##Online
+`阿里云，1核cpu，1G内存，1M带宽，Ubuntu12.04`
+
+`ab -n 500 -c 10 http://xxx.xxx.xxx.xxx:xxxx/`
+
+__sparrow__
+
+![sparrow_ab_online](performance_test/sparrow_ab_online.jpg)
+
+__nginx__
+
+![nginx_ab_online](performance_test/nginx_ab_online.jpg)
+
+
+`webbech -c 500 -t 60 http://xxxx`
+
+`sparrow, nginx respectively`
+
+![nginx_sparrow_webb](performance_test/nginx_sparrow_webb.jpg)
+
+
+
+
+
 

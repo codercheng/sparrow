@@ -111,7 +111,9 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 		setnonblocking(conn_fd);
 
-		//log_info("Got connection from ip:%s, port:%d, conn_fd:%d\n",inet_ntoa(client_sock.sin_addr),ntohs(client_sock.sin_port), conn_fd);
+		if(conf.log_enable) {
+			log_info("Got connection from ip:%s, port:%d, conn_fd:%d\n",inet_ntoa(client_sock.sin_addr),ntohs(client_sock.sin_port), conn_fd);
+		}
 		int reuse = 1;
     	setsockopt(conn_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
@@ -167,9 +169,9 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		else if(nread == -1) {
 			if(errno != EAGAIN)	{
 				if(conf.log_enable) {
-					log_error("read http err\n");
+					log_error("read http err, %s\n", strerror(errno));
 				} else {
-					fprintf(stderr, "read http err\n");
+					fprintf(stderr, "read http err, %s\n", strerror(errno));
 				}
 				ev_unregister(loop, sock);
 				close(sock);
