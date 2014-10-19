@@ -78,7 +78,7 @@ __nginx__
 ![nginx_webb](performance_test/nginx_webbench.png)
 -----------------
 ##Online
-`阿里云，1核cpu，1G内存，1M带宽，Ubuntu12.04阿里云，1核cpu，1G内存，1M带宽，Ubuntu12.04`
+`阿里云，1核cpu，1G内存，1M带宽，Ubuntu12.04`
 
 `ab -n 500 -c 10 http://xxx.xxx.xxx.xxx:xxxx/`
 
@@ -86,12 +86,12 @@ __sparrow__
 
 ![sparrow_ab_online](performance_test/sparrow_ab_online.jpg)
 
-__nginx____
+__nginx__
 
 ![nginx_ab_online](performance_test/nginx_ab_online.jpg)
 
 
-'webbech -c 500 -t 60 http://xxxx'
+`webbech -c 500 -t 60 http://xxxx`
 
 `sparrow, nginx respectively`
 
