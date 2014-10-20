@@ -32,6 +32,9 @@
    *  均衡工作线程的地方，现在用的是随机分配，增加统计每个线程中的任务数，然后分配
    * how to reduce time\_wait in server side? May be it will work that [close() when finishing a request in server side -->   register EV\_READ. send connection close in http header, thus client closing the conn actively!]
    * chunked 编码支持
+   * __bug:在网速基本为0的情况下，连接远端服务器，结果把log输入到了网页，未重现__
+   * 添加一个检测程序，当程序死掉或者不能访问的时候， 重启进程。（确保存活，并确保线程没有崩）
+   
 
 ----------------
 ###笔记
