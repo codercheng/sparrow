@@ -32,6 +32,9 @@
    *  均衡工作线程的地方，现在用的是随机分配，增加统计每个线程中的任务数，然后分配
    * how to reduce time\_wait in server side? May be it will work that [close() when finishing a request in server side -->   register EV\_READ. send connection close in http header, thus client closing the conn actively!]
    * chunked 编码支持
+   * 添加音乐服务
+   * 项目栏目，增加标签/关键字，比如：C，JAVA, 多线程，网络等
+   * 添加一个检测shell，确保进程存活同时网络可用，epoll出错后直接退出。
 
 ----------------
 ###笔记
