@@ -32,7 +32,7 @@
    *  均衡工作线程的地方，现在用的是随机分配，增加统计每个线程中的任务数，然后分配
    * how to reduce time\_wait in server side? May be it will work that [close() when finishing a request in server side -->   register EV\_READ. send connection close in http header, thus client closing the conn actively!]
    * chunked 编码支持
-   * __bug:在网速基本为0的情况下，连接远端服务器，结果把log输入到了网页，未重现__
+   * __bug:在网速基本为0的情况下，连接远端服务器，结果把log输入到了网页，未重现（问题找到了：因为配置文件默认log是开启的，然后再配置文件还没有加载完的时候，连接先过来了，那么还是按默认的要打印log，但是输出到网页，我想应该是刚好的打开log的文件的fd一样了？具体在分析）__
    * 添加一个检测程序，当程序死掉或者不能访问的时候， 重启进程。（确保存活，并确保线程没有崩）
    
 
