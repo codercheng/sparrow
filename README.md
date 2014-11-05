@@ -32,6 +32,10 @@
    *  均衡工作线程的地方，现在用的是随机分配，增加统计每个线程中的任务数，然后分配
    * how to reduce time\_wait in server side? May be it will work that [close() when finishing a request in server side -->   register EV\_READ. send connection close in http header, thus client closing the conn actively!]
    * chunked 编码支持
+   * __bug:在网速基本为0的情况下，连接远端服务器，结果把log输入到了网页，未重现__
+   * 添加一个检测程序，当程序死掉或者不能访问的时候， 重启进程。（确保存活，并确保线程没有崩）(一个检测shell，确保进程存活同时网络可用，epoll出错后直接退出。)
+   * 添加音乐服务
+   * 项目栏目，增加标签/关键字，比如：C，JAVA, 多线程，网络等
 
 ----------------
 ###笔记
@@ -46,6 +50,7 @@
    * 2014-10-14:解决,url中包含中文而不能匹配文件名的问题。
    * 2014-10-15:fix bug:__目录下输出的子目录和文件排序问题__
    * 2014-10-17:fix bug:目录名中含有小数点'.'访问出错
+   * 2014-10-19:增加个人website前端模板
 
 ##性能测试(offline/online)(_sparrow VS nginx_)
 _note: 这并不是一个公平的性能对比，由于本人对nginx并不是那么的熟，nginx基本上就是用的默认的配置，而且nginx的版本也不是很新。以下对比仅仅是一个粗略的参考_
