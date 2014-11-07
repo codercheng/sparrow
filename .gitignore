@@ -29,6 +29,7 @@
 *.hex
 
 #custom
-log/
+core
+]log/
 test/
 www/myfolder/
