@@ -113,6 +113,8 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 		if(conf.log_enable) {
 			log_info("Got connection from ip:%s, port:%d, conn_fd:%d\n",inet_ntoa(client_sock.sin_addr),ntohs(client_sock.sin_port), conn_fd);
+		}else {
+			printf("ip:%s, conn_fd:%d\n", inet_ntoa(client_sock.sin_addr),conn_fd);
 		}
 		int reuse = 1;
     	setsockopt(conn_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
@@ -193,6 +195,11 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	read_complete =(strstr(buf, "\n\n") != 0) ||(strstr(buf, "\r\n\r\n") != 0);
 
 	if(read_complete) {
+		if(strncmp(buf,"GET", 3)) {
+			ev_unregister(loop, sock);
+			close(sock);
+			return NULL;
+		}
 		char *path_end = strchr(buf+4, ' ');
 		int len = path_end - buf - 4 -1;
 
