@@ -8,6 +8,7 @@
 #online demo
 
   * online demo:[@blog](http://112.124.44.203:8080/)
+  `注意目前只支持GET方法，不要用别的方法测试`
 
 ----------------
 ###How To Use
