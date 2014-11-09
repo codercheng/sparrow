@@ -2,7 +2,7 @@
 
 
 # for log, find the different ip addresses and the numbers it visited the website
-cat 2014-11-01.log | awk '/ip:/ {++s[$10];}END {for(a in s) print a, s[a];}'
+cat log/$(date +%F).log | awk '/ip:/ {++s[$10];}END {for(a in s) print a, s[a];}'
 
 # for network
 
