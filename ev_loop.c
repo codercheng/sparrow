@@ -145,7 +145,7 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb) {
 int ev_unregister(ev_loop_t *loop, int fd) {
 	struct epoll_event ev;
 	if(-1 == epoll_ctl(loop->epfd, EPOLL_CTL_DEL, fd, &ev)) {
-		fprintf(stderr, "epoll_ctl mod in ev_unregister\n");
+		fprintf(stderr, "epoll_ctl del in ev_unregister\n");
 		ev_clear(fd);
 		return -1;
 	}
