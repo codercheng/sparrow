@@ -30,6 +30,6 @@
 
 #custom
 core
-]log/
+log/
 test/
 www/myfolder/
