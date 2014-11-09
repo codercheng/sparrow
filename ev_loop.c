@@ -51,25 +51,26 @@ ev_loop_t *ev_create_loop(int maxevent, int et) {
 	LOCK(lock_);
 	if(fd_records == NULL) {
 		fd_records = (fd_record_t *)malloc(maxevent * sizeof(fd_record_t));
+		int i;
+		for(i=0; i<maxevent; i++) {
+			fd_records[i].active = 0;
+			fd_records[i].events = 0;
+			fd_records[i].cb_read = NULL;
+			fd_records[i].cb_write = NULL;
+
+			fd_records[i].ffd = NO_FILE_FD;
+			fd_records[i].write_pos = 0;
+			fd_records[i].read_pos = 0;
+			fd_records[i].total_len = 0;
+			memset(fd_records[i].buf, 0, MAXBUFSIZE);
+			memset(fd_records[i].path, 0, sizeof(fd_records[i].path));
+			fd_records[i].http_code = 200;
+		}
 		//printf("init\n");
 	}
 	//printf("after init\n");
 	UNLOCK(lock_);
-	int i;
-	for(i=0; i<maxevent; i++) {
-		fd_records[i].active = 0;
-		fd_records[i].events = 0;
-		fd_records[i].cb_read = NULL;
-		fd_records[i].cb_write = NULL;
-
-		fd_records[i].ffd = NO_FILE_FD;
-		fd_records[i].write_pos = 0;
-		fd_records[i].read_pos = 0;
-		fd_records[i].total_len = 0;
-		memset(fd_records[i].buf, 0, MAXBUFSIZE);
-		memset(fd_records[i].path, 0, sizeof(fd_records[i].path));
-		fd_records[i].http_code = 200;
-	}
+	
 	return loop;
 }
 
@@ -100,13 +101,12 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb) {
 		}
 	} else {     /*new add event*/
 		if(EV_READ & events) {
-			fd_records[fd].events |= events;
 			fd_records[fd].cb_read = cb;
 		}
 		if(EV_WRITE & events) {
-			fd_records[fd].events |= events;
 			fd_records[fd].cb_write = cb;
 		}
+		fd_records[fd].events |= events;
 
 		struct epoll_event ev;
 		ev.events = fd_records[fd].events;
@@ -114,27 +114,27 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb) {
 			ev.events |= EPOLLET;
 		}
 		ev.data.fd = fd;
-		if(events == EV_READ)
-			fd_records[fd].active = 0;
-		else if(events == EV_WRITE)
-		 	fd_records[fd].active = 1;
-
-		if(fd_records[fd].active) {/*mod*/
+		if(events == EV_WRITE/*fd_records[fd].active*/) {/*mod*/
 			if(-1 == epoll_ctl(loop->epfd, EPOLL_CTL_MOD, fd, &ev)) {
-				fprintf(stderr, "epoll_ctl mod in ev_register: %s\n", strerror(errno));
-				
+				fprintf(stderr, "epoll_ctl mod in ev_register: %s, fd:%d, %ld\n", strerror(errno), fd, gettid());
+				ev_clear(fd);
+				close(fd);
 				return -1;
 			}
-		} else {/*add*/
+		} else if(events == EV_READ) {/*add*/
 			if(-1 == epoll_ctl(loop->epfd, EPOLL_CTL_ADD, fd, &ev)) {
-				fprintf(stderr, "epoll_ctl add in ev_register: %s\n", strerror(errno));
-				
+				fprintf(stderr, "epoll_ctl add in ev_register: %s, fd:%d, %ld\n", strerror(errno), fd, gettid());
+				ev_unregister(loop, fd);
+				close(fd);
 				return -1;
 			}
+		} else {
+			fprintf(stderr, "epoll_ctl undefined events\n");
+			close(fd);
+			return -1;
 		}
 
 	}
-	
 	fd_records[fd].active = 1;
 	return 0;
 }
@@ -157,7 +157,7 @@ int ev_unregister(ev_loop_t *loop, int fd) {
  */
 int ev_stop(ev_loop_t *loop, int fd, EV_TYPE events) {
 	/*fd in use, and evnets on fd*/
-	if(fd_records[fd].active && (fd_records[fd].events & events)) {
+	if(/*fd_records[fd].active &&*/ (fd_records[fd].events & events)) {
 		if((fd_records[fd].events & EV_READ) && (events & EV_READ)) {
 			fd_records[fd].events &= (~EV_READ);
 		}
@@ -182,6 +182,7 @@ int ev_stop(ev_loop_t *loop, int fd, EV_TYPE events) {
 		// 	//printf("here...\n");
 		// 	//return ev_unregister(loop, fd);
 		// }
+		return 0;
 	}
 	return 0;
 }
@@ -207,11 +208,13 @@ int ev_run_loop(ev_loop_t *loop) {
 			int fd = loop->events[i].data.fd;
 			fd_record_t record = fd_records[fd];
 			if(EV_READ & loop->events[i].events) {
-				(*(record.cb_read))(loop, fd, EV_READ);
+				if(record.cb_read != NULL)
+					(*(record.cb_read))(loop, fd, EV_READ);
 			}
 			/*pre-step may have unregisterd the fd, make sure the fd is active!*/
 			if((EV_WRITE & loop->events[i].events) && fd_records[fd].active) { 
-				(*(record.cb_write))(loop, fd, EV_WRITE);
+				if(record.cb_write != NULL)
+					(*(record.cb_write))(loop, fd, EV_WRITE);
 			}
 			
 		}
