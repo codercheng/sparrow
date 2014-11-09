@@ -34,6 +34,8 @@ ev_loop_t * listen_loop = NULL;
 char dir_first_part[1024];
 char dir_second_part[512];
 
+unsigned long long int round_robin_num = 0;
+
 int main()
 {
 	srand(time(0));
@@ -130,16 +132,15 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 	    	int on = 1;
 	    	setsockopt(sock, SOL_TCP, TCP_CORK, &on, sizeof(on));
 	    }
-
-		int ret = ev_register(ev_loop_queue[rand()%conf.worker_thread_num], conn_fd, EV_READ, read_http);
+		int ret = ev_register(ev_loop_queue[(round_robin_num++)%conf.worker_thread_num/*rand()%conf.worker_thread_num*/], conn_fd, EV_READ, read_http);
 		if(ret == -1) {
 			if(conf.log_enable) {
 				log_error("register err\n");
 			} else {
 				fprintf(stderr, "ev register err in accept_sock()\n");
 			}
-			ev_unregister(loop, conn_fd);
-			close(conn_fd);
+			//ev_unregister(loop, conn_fd);
+			//close(conn_fd);
 			return NULL;
 		}
 	}
@@ -335,19 +336,20 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		int ret;
 		ret = ev_stop(loop, sock, EV_READ);
 		if(ret == -1) {
+			ev_unregister(loop, sock);
 			close(sock);
 			return NULL;
 		}
 		ret = ev_register(loop, sock, EV_WRITE, write_http_header);
 		if(ret == -1) {
-			printf("ev register err in read_http()\n");
+			//printf("ev register err in read_http()\n");
 			if(conf.log_enable) {
 				log_error("ev register err in read_http()\n");
 			} else {
 				fprintf(stderr,"ev register err in read_http()\n");
 			}
-			ev_unregister(loop, sock);
-			close(sock);
+			//ev_unregister(loop, sock);
+			//close(sock);
 			return NULL;
 		}
 	}
@@ -404,8 +406,8 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 					} else {
 						fprintf(stderr,"ev register err in write_http_header1()\n");
 					}
-					ev_unregister(loop, sockfd);
-					close(sockfd);
+					//ev_unregister(loop, sockfd);
+					//close(sockfd);
 					return NULL;
 				}
 			}
@@ -429,8 +431,8 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 					} else {
 						fprintf(stderr,"ev register err in write_http_header2()\n");
 					}
-					ev_unregister(loop, sockfd);
-					close(sockfd);
+					//ev_unregister(loop, sockfd);
+					//close(sockfd);
 					return NULL;
 				}
 			}
