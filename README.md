@@ -35,7 +35,7 @@
 
 -----------------
 ###待续...
-   * __不支持的方法给出回应：目前默认GET导致了别的方法POST访问，就奔溃了，汗__
+   * __大量并发连接的情况下，偶尔会出现少量close_wait情况：初步分析如下，目前的连接关闭都是在服务端主动关闭，客户端被动关闭，但是在服务端只注册了可写事件的时候，此时客户端主动断开，那么无处处理断开导致的可读事件去close，出现close_wait__
    * __bug:当目录下文件过大时，buf溢出问题__
    *  均衡工作线程的地方，现在用的是随机分配，增加统计每个线程中的任务数，然后分配
    * how to reduce time\_wait in server side? May be it will work that [close() when finishing a request in server side -->   register EV\_READ. send connection close in http header, thus client closing the conn actively!]
