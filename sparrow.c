@@ -24,7 +24,9 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <ctype.h>
 
+#include "util.h"
 
 char *work_dir;
 
@@ -184,6 +186,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			}
 		} else if(nread == 0) {
 			//client quit
+			//printf("client quit\n");
 			ev_unregister(loop, sock);
 			close(sock);
 			return NULL;
@@ -196,11 +199,23 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	read_complete =(strstr(buf, "\n\n") != 0) ||(strstr(buf, "\r\n\r\n") != 0);
 
 	if(read_complete) {
-		if(strncmp(buf,"GET", 3)) {
+		if(strncmp(str_2_lower(buf, 3),"get", 3)) {
 			ev_unregister(loop, sock);
 			close(sock);
 			return NULL;
 		}
+		////////////////////////////////////////////////////////////
+		///               http parse(tmp)
+		////////////////////////////////////////////////////////////
+		int index;
+		for(index=0; index<strlen(buf); index++) {
+			buf[index] = tolower(buf[index]);
+		}
+		if(strstr(buf, "keep-alive")) {
+			fd_records[sock].keep_alive = 1;
+		}
+
+		////////////////////////////////////////////////////////////
 		char *path_end = strchr(buf+4, ' ');
 		int len = path_end - buf - 4 -1;
 
@@ -260,12 +275,13 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 			last_modified_time = filestat.st_mtime;
 			//process 304 not modified
-			char *time_begin = strstr(fd_records[sock].buf, "If-Modified-Since:");
+			//lower case
+			char *time_begin = strstr(fd_records[sock].buf, "if-modified-since:");
 			if(time_begin != NULL) {
-				time_begin = time_begin + sizeof("If-Modified-Since:");
+				time_begin = time_begin + sizeof("if-modified-since:");
 				char *time_end = strchr(time_begin, '\n');
-
-				if(strncmp(ctime(&last_modified_time), time_begin, time_end - time_begin -1) == 0) {
+				
+				if(strncmp(str_2_lower(ctime(&last_modified_time), strlen(ctime(&last_modified_time))), time_begin, time_end - time_begin -1) == 0) {
 					fd_records[sock].http_code = 304;
 				}
 			}
@@ -314,32 +330,37 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			if(fd_records[sock].http_code == 200) {
 				/*because ctime() retuan a string end with '\n', so no more '\n' is add below*/
 				header_length = sprintf(fd_records[sock].buf, \
-					"%sContent-Type: %s\nContent-Length: %d\nLast-Modified:%sCache-Control: max-age=%d\nConnection: Close\n\n", \
+					"%sContent-Type: %s\r\nContent-Length: %d\r\nLast-Modified:%sCache-Control: max-age=%d\r\n", \
 					header_200_ok, content_type, (int)filestat.st_size, ctime(&last_modified_time), conf.cache_control_max_age);
 
 			} else {  /*folder*/
 				header_length = sprintf(fd_records[sock].buf, \
-					"%sContent-Type: %s\nCache-Control: max-age=%d\nConnection: Close\n\n", \
+					"%sContent-Type: %s\r\nCache-Control: max-age=%d\r\n", \
 					header_200_ok, content_type, conf.cache_control_max_age);
 			}
 		}	
 		else if(fd_records[sock].http_code == 404) {
 			header_length = sprintf(fd_records[sock].buf, \
-				"%sContent-Type: %s\nContent-Length: %d\nConnection: Close\n\n", \
+				"%sContent-Type: %s\r\nContent-Length: %d\r\n", \
 				header_404_not_found, content_type, (int)filestat.st_size);
 		}
 		else if(fd_records[sock].http_code == 304) {
-			header_length = sprintf(fd_records[sock].buf, "%s\n", header_304_not_modified);
+			header_length = sprintf(fd_records[sock].buf, "%s\r\n", header_304_not_modified);
+		}
+		if(fd_records[sock].keep_alive && fd_records[sock].http_code != 304) {
+			header_length += sprintf(fd_records[sock].buf+header_length, "%s\r\n\r\n", "Connection: Keep-Alive");
+		} else {
+			header_length += sprintf(fd_records[sock].buf+header_length, "%s\r\n\r\n", "Connection: Close");
 		}
 		fd_records[sock].buf[header_length] = '\0';
 
 		int ret;
-		ret = ev_stop(loop, sock, EV_READ);
-		if(ret == -1) {
-			ev_unregister(loop, sock);
-			close(sock);
-			return NULL;
-		}
+		// ret = ev_stop(loop, sock, EV_READ);
+		// if(ret == -1) {
+		// 	ev_unregister(loop, sock);
+		// 	close(sock);
+		// 	return NULL;
+		// }
 		ret = ev_register(loop, sock, EV_WRITE, write_http_header);
 		if(ret == -1) {
 			//printf("ev register err in read_http()\n");
@@ -371,7 +392,9 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 	while(1) {
 		int nwrite;
 		nwrite = write(sockfd, fd_records[sockfd].buf+fd_records[sockfd].write_pos, strlen(fd_records[sockfd].buf)-fd_records[sockfd].write_pos);
-		fd_records[sockfd].write_pos+=nwrite;
+		if(nwrite > 0) {
+			fd_records[sockfd].write_pos+=nwrite;
+		}
 		if(nwrite == -1) {
 			if(errno != EAGAIN)
 			{
@@ -493,6 +516,7 @@ int process_dir_html(char *path, int sockfd) {
 }
 
 void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
+	//sleep(50);
 	int ffd = fd_records[sockfd].ffd;
 	while(1) {
 	    off_t offset = fd_records[sockfd].read_pos;
@@ -513,12 +537,19 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 			} else {
 				// 写入到缓冲区已满了
 				//return NULL;
+				printf("w_full\n");
 				break;
 			}
 	    }
 	    if(fd_records[sockfd].read_pos == fd_records[sockfd].total_len) {
+	   		int keep_alive = fd_records[sockfd].keep_alive;
 	   		ev_unregister(loop, sockfd);
-	  		close(sockfd);
+	  		if(keep_alive) {
+	   			ev_register(loop, sockfd, EV_READ, read_http);
+	   		}
+	   		else {
+	   			close(sockfd);
+	   		}
 	   		close(ffd);
 
 	   		return NULL;
