@@ -33,3 +33,5 @@ core
 log/
 test/
 www/myfolder/
+test
+test.c
