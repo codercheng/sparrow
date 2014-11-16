@@ -35,8 +35,6 @@ enum {
 };
 
 
-
-
 typedef struct {
 	int epfd;
 	int maxevent;
@@ -61,8 +59,9 @@ typedef struct {
 	char buf[MAXBUFSIZE];
 	int http_code;
 	char path[256];
+	int keep_alive;
 	//void *ptr; /*reserved pointer*/
-}fd_record_t;
+} fd_record_t;
 
 //muti-threads share the fd_records
 fd_record_t *fd_records;

@@ -65,6 +65,7 @@ ev_loop_t *ev_create_loop(int maxevent, int et) {
 			memset(fd_records[i].buf, 0, MAXBUFSIZE);
 			memset(fd_records[i].path, 0, sizeof(fd_records[i].path));
 			fd_records[i].http_code = 200;
+			fd_records[i].keep_alive = 0;
 		}
 		//printf("init\n");
 	}
@@ -86,7 +87,6 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb) {
 		fprintf(stderr, "invalid fd\n");
 		return -1;
 	}
-
 	/**
 	 * events registerd already, just change the cb
 	 */
@@ -283,6 +283,7 @@ void ev_clear(int fd) {
 	fd_records[fd].total_len = 0;
 	fd_records[fd].read_pos = 0;
 	fd_records[fd].http_code = 200;	
+	fd_records[fd].keep_alive = 0;
 	memset(fd_records[fd].path, 0, sizeof(fd_records[fd].path));
 	memset(fd_records[fd].buf, 0, MAXBUFSIZE);
 }
