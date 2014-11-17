@@ -7,21 +7,22 @@
  * it likes a simplified libev library which only supports the events 
  * on fds. timer and signal will be added later.
  ***********************************************************************/
+#ifndef _EV_LOOP_H
+#define _EV_LOOP_H
+
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-#ifndef _EV_LOOP_H
-#define _EV_LOOP_H
 
 #include <unistd.h>
 #include <sys/epoll.h>
 #include "global.h"
+//#include "min_heap.h"
 
 #define EV_TYPE __uint32_t
-
 
 /**
  * use when init fd_records in muti_threads environment
@@ -35,12 +36,19 @@ enum {
 };
 
 
-typedef struct {
+typedef struct ev_loop_t{
 	int epfd;
 	int maxevent;
 	int etmodel;
 	//fd_record_t *fd_records;
 	struct epoll_event *events;
+
+	//timer
+	//struct ev_timer_t **heap;
+	void **heap;
+	int heap_size;
+	int heap_capacity;
+	int timer_fd;
 }ev_loop_t;
 
 typedef void* (*cb_func_t) (ev_loop_t *loop, int fd, EV_TYPE events);
@@ -60,7 +68,6 @@ typedef struct {
 	int http_code;
 	char path[256];
 	int keep_alive;
-	//void *ptr; /*reserved pointer*/
 } fd_record_t;
 
 //muti-threads share the fd_records

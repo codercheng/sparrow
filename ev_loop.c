@@ -67,7 +67,7 @@ ev_loop_t *ev_create_loop(int maxevent, int et) {
 			fd_records[i].http_code = 200;
 			fd_records[i].keep_alive = 0;
 		}
-		//printf("init\n");
+		printf("init\n");
 	}
 	//printf("after init\n");
 	UNLOCK(lock_);

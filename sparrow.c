@@ -27,6 +27,7 @@
 #include <ctype.h>
 
 #include "util.h"
+#include "min_heap.h"
 
 char *work_dir;
 
@@ -213,6 +214,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		}
 		if(strstr(buf, "keep-alive")) {
 			fd_records[sock].keep_alive = 1;
+			printf("keep_alive\n");
 		}
 
 		////////////////////////////////////////////////////////////
@@ -515,6 +517,16 @@ int process_dir_html(char *path, int sockfd) {
 	return strlen(fd_records[sockfd].buf);
 }
 
+static 
+void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
+	time_t t;
+	t = time(NULL);
+	printf("hello:%ld, i am %d\n", t, timer->fd);
+	if(fd_records[timer->fd].active)
+		ev_unregister(loop, timer->fd);
+	close(timer->fd);
+}
+
 void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	//sleep(50);
 	int ffd = fd_records[sockfd].ffd;
@@ -537,7 +549,7 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 			} else {
 				// 写入到缓冲区已满了
 				//return NULL;
-				printf("w_full\n");
+				//printf("w_full\n");
 				break;
 			}
 	    }
@@ -545,6 +557,7 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	   		int keep_alive = fd_records[sockfd].keep_alive;
 	   		ev_unregister(loop, sockfd);
 	  		if(keep_alive) {
+	  			add_timer(loop, 15, process_timeout, 0, (void*)sockfd);
 	   			ev_register(loop, sockfd, EV_READ, read_http);
 	   		}
 	   		else {

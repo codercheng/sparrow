@@ -5,6 +5,8 @@
 #include "sparrow.h"
 #include "config.h"
 
+#include "min_heap.h"
+
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -37,6 +39,7 @@ int worker_threads_init(int thread_num) {
 	for(i=0; i<thread_num; i++) {
 		
 		ev_loop_queue[i] = ev_create_loop(conf.max_conn, conf.use_epoll_et);
+		timer_heap_init(ev_loop_queue[i], 128);
 
 		ret = pthread_create(&(worker_threads_queue[i]), NULL, worker_threads_entrance, (void *)ev_loop_queue[i]);
 		if(ret < 0)	{
