@@ -68,6 +68,8 @@ typedef struct {
 	int http_code;
 	char path[256];
 	int keep_alive;
+
+	void* timer_ptr;
 } fd_record_t;
 
 //muti-threads share the fd_records

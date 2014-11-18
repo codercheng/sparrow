@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!-- saved from url=(0050)http://webcooker.net/demos/ajax-long-polling-demo/ -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	
+	<script src="./jquery/2.0.0/jquery.min.js"></script>
+	<title>Understanding Ajax Long-Polling Requests - WebCooker</title>
+</head>
+<body>
+<table style="width: 100%;">
+	<tbody>
+		<tr>
+			<td width="50%">
+				<h4>Received Messages (Live Stream)</h4>
+				<ul class="items"><li id="2039">2039. bbb</li><li id="2038">2038. bb</li><li id="2037">2037. abc edf</li><li id="2036">2036. aaa</li><li id="2035">2035. nn'</li><li id="2034">2034. Japanese</li><li id="2033">2033. google</li><li id="2032">2032. bbb</li>
+									<li>2031. vv</li>
+									<li>2019. aa</li>
+									<li>2018. aa</li>
+								</ul>
+							</td>
+			<td width="50%">
+				<h4>Send Us Message</h4>
+				<form method="POST" id="send-message">
+					<input name="message" rows="10" style="width: 100%;" placeholder="Enter message and hit Enter">
+				</form>
+			</td>
+		</tr>
+	</tbody>
+</table>
+<script>
+jQuery( function(){
+	// Form Submission
+	jQuery('#send-message').submit( function(){
+		var message = jQuery('#send-message input[name=message]').val();
+		if( jQuery.trim( message ) == '' ){
+			alert('Enter a message!');
+			return false;
+		}
+		
+		jQuery.ajax({
+			url: 'submit.php',
+			type: 'POST',
+			data: 'message=' + message,
+			dataType: 'json',
+			success: function( payload ){
+				if( payload.status == 'error' ){
+					alert('Error!');
+				} else if( payload.status == 'empty-message' ){
+					alert('Enter a message!');
+				} else if( payload.status == 'success' ){
+					jQuery('#send-message input[name=message]').val('');
+				}
+			}
+		});
+		return false;
+	});
+
+	// Start Long-polling for messages
+	function messages_longpolling( timestamp, lastId ){
+		var t;
+
+		if( typeof lastId == 'undefined' ){
+			lastId = 0;
+		}
+				
+		jQuery.ajax({
+			url: 'livechat',
+			type: 'GET',
+			data: 'timestamp=' + timestamp + '&lastId=' + lastId,
+			dataType: 'json',
+			success: function(){
+				//clearInterval( t );
+				
+				t=setTimeout( function(){
+					messages_longpolling( payload.timestamp, payload.lastId );
+				}, 1000 );
+				
+			},
+			error: function(){
+				//clearInterval( t );
+				t=setTimeout( function(){
+					messages_longpolling( '123435252');
+				}, 1000 );
+			}
+		});
+	}
+	messages_longpolling( '1414596263' );
+});
+</script>
+
+</body></html>

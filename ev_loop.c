@@ -66,6 +66,7 @@ ev_loop_t *ev_create_loop(int maxevent, int et) {
 			memset(fd_records[i].path, 0, sizeof(fd_records[i].path));
 			fd_records[i].http_code = 200;
 			fd_records[i].keep_alive = 0;
+			fd_records[i].timer_ptr = NULL;
 		}
 		printf("init\n");
 	}
@@ -145,7 +146,7 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb) {
 int ev_unregister(ev_loop_t *loop, int fd) {
 	struct epoll_event ev;
 	if(-1 == epoll_ctl(loop->epfd, EPOLL_CTL_DEL, fd, &ev)) {
-		fprintf(stderr, "epoll_ctl del in ev_unregister\n");
+		fprintf(stderr, "epoll_ctl del in ev_unregister:%s\n", strerror(errno));
 		ev_clear(fd);
 		return -1;
 	}
@@ -284,6 +285,7 @@ void ev_clear(int fd) {
 	fd_records[fd].read_pos = 0;
 	fd_records[fd].http_code = 200;	
 	fd_records[fd].keep_alive = 0;
+	fd_records[fd].timer_ptr = NULL;
 	memset(fd_records[fd].path, 0, sizeof(fd_records[fd].path));
 	memset(fd_records[fd].buf, 0, MAXBUFSIZE);
 }

@@ -97,6 +97,17 @@ int main()
 	return 0;
 }
 
+static 
+void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
+	time_t t;
+	t = time(NULL);
+	printf("hello:%ld, i am %d\n", t, timer->fd);
+	if(fd_records[timer->fd].active)
+		ev_unregister(loop, timer->fd);
+	close(timer->fd);
+}
+
+
 void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 	struct sockaddr_in client_sock;
 	socklen_t len = sizeof(client_sock);
@@ -238,11 +249,26 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		strncpy(filename, prefix, strlen(prefix));
 		strncpy(filename+strlen(prefix), path, strlen(path)+1);
 
-//**************************************************************************
-// Dynamic service entry
-//**************************************************************************
+		//**************************************************************************
+		// Dynamic service entry
+		//**************************************************************************
+		if(strncmp(path, "livechat", 8)==0) {
+			printf("-------------live-chat-----------\n");
+			//add_timer(loop, 40, process_timeout, 0, (void*)sock);
+			ev_timer_t *timer= (ev_timer_t *)fd_records[sock].timer_ptr;
+			if(timer == NULL) {
+  				add_timer(loop, 10, process_timeout, 0, (void*)sock);
+  			} else {
+  				printf("here---\n");
+  				timer->cb = NULL;
+  				add_timer(loop, 10, process_timeout, 0, (void*)sock);
+  			}
+			return NULL;
+		}
 
-		
+		//**************************************************************************
+
+				
 		struct stat filestat;
 		time_t last_modified_time;
 		int s = lstat(filename, &filestat);
@@ -517,15 +543,6 @@ int process_dir_html(char *path, int sockfd) {
 	return strlen(fd_records[sockfd].buf);
 }
 
-static 
-void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
-	time_t t;
-	t = time(NULL);
-	printf("hello:%ld, i am %d\n", t, timer->fd);
-	if(fd_records[timer->fd].active)
-		ev_unregister(loop, timer->fd);
-	close(timer->fd);
-}
 
 void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	//sleep(50);
@@ -555,9 +572,15 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	    }
 	    if(fd_records[sockfd].read_pos == fd_records[sockfd].total_len) {
 	   		int keep_alive = fd_records[sockfd].keep_alive;
+	   		ev_timer_t *timer= (ev_timer_t *)fd_records[sockfd].timer_ptr;
 	   		ev_unregister(loop, sockfd);
 	  		if(keep_alive) {
-	  			add_timer(loop, 15, process_timeout, 0, (void*)sockfd);
+	  			if(timer == NULL) {
+	  				add_timer(loop, 5, process_timeout, 0, (void*)sockfd);
+	  			} else {
+	  				timer->cb = NULL;
+	  				add_timer(loop, 5, process_timeout, 0, (void*)sockfd);
+	  			}
 	   			ev_register(loop, sockfd, EV_READ, read_http);
 	   		}
 	   		else {
@@ -570,3 +593,4 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
   	}
 	return NULL;
 }
+

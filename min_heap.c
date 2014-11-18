@@ -155,6 +155,7 @@ void add_timer(ev_loop_t *loop, double timeout, cb_timer_t cb,
 	timer->fd = fd;
 	timer->repeat = repeat;
 	
+	fd_records[fd].timer_ptr = timer;
 	heap_add(loop, timer);
 	if(loop->heap_size == 1) {
 		ts = tick(loop);
@@ -175,9 +176,10 @@ timespec tick(ev_loop_t *loop) {
 		//////////////////////////////////////////
 		if(heap_top((ev_timer_t **)(loop->heap))->cb == NULL) {
 			heap_pop(loop);
-			ts.tv_sec = 0;
-			ts.tv_nsec = 0;
-			return ts;
+			// ts.tv_sec = 0;
+			// ts.tv_nsec = 0;
+			// return ts;
+			continue;
 		}
 		////////////////////////////////, int *heap_size/////////
 		(*(heap_top((ev_timer_t **)(loop->heap))->cb))(loop, heap_top((ev_timer_t **)(loop->heap)));
