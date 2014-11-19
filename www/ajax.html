@@ -72,19 +72,19 @@ jQuery( function(){
 			success: function(data){
 				//clearInterval( t );
 			//	alert("hello, success!");
-				$("#ret").html(data.firstName);
+				$("#ret").html("success");
 				t=setTimeout( function(){
 					messages_longpolling('231232423');
-				}, 500 );
+				}, 1000 );
 				
 			},
 			error: function(){
 			//	alert("hello error!");
 				//clearInterval( t );
-				$("#ret").html("<h2>fail!</2>");
+				$("#ret").html(Math.random());
 				t=setTimeout( function(){
 					messages_longpolling( '123435252');
-				}, 500 );
+				}, 1000 );
 			}
 		});
 	}

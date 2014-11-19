@@ -102,9 +102,9 @@ void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
 	time_t t;
 	t = time(NULL);
 	printf("hello:%ld, i am %d\n", t, timer->fd);
-	char test[] = "{ \"firstName\":\"Bill\" , \"lastName\":\"Gates\" }";
-	int n = write(timer->fd, test, sizeof(test));
-	printf("----------n:%d\n", n);
+	// char test[] = "{ \"firstName\":\"Bill\" , \"lastName\":\"Gates\" }";
+	// int n = write(timer->fd, test, sizeof(test));
+	// printf("----------n:%d\n", n);
 	if(fd_records[timer->fd].active) {
 		printf("timeout ev_unregister\n");
 		ev_unregister(loop, timer->fd);
@@ -267,11 +267,11 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			//add_timer(loop, 40, process_timeout, 0, (void*)sock);
 			ev_timer_t *timer= (ev_timer_t *)fd_records[sock].timer_ptr;
 			if(timer == NULL) {
-  				add_timer(loop, 10, process_timeout, 0, (void*)sock);
+  				add_timer(loop, 40, process_timeout, 0, (void*)sock);
   			} else {
   				printf("here---\n");
   				timer->cb = NULL;
-  				add_timer(loop, 10, process_timeout, 0, (void*)sock);
+  				add_timer(loop, 40, process_timeout, 0, (void*)sock);
   			}
 			return NULL;
 		}
