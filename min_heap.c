@@ -66,6 +66,10 @@ void heap_percolate_down(ev_timer_t **heap, int pos, int heap_size) {
 static 
 void heap_add(ev_loop_t *loop,  ev_timer_t *timer) {
 	loop->heap[++(loop->heap_size)] = timer;
+	if(timer == NULL) {
+		printf("add timer,but timer == null\n");
+	}
+	printf("head_size_now:%d\n", loop->heap_size);
 	heap_percolate_up((ev_timer_t **)(loop->heap), loop->heap_size);
 }
 
@@ -158,9 +162,12 @@ void add_timer(ev_loop_t *loop, double timeout, cb_timer_t cb,
 	fd_records[fd].timer_ptr = timer;
 	heap_add(loop, timer);
 	if(loop->heap_size == 1) {
+		printf("---head_size == 1\n");
 		ts = tick(loop);
 	    struct itimerspec newValue;
+	    bzero(&newValue,sizeof(newValue));  
 	    newValue.it_value = ts;
+	    printf("********h1,ts:%ld.%ld\n", ts.tv_sec, ts.tv_nsec);
 	    timerfd_settime(loop->timer_fd, 0, &newValue, NULL);
 	}
 }
@@ -176,6 +183,7 @@ timespec tick(ev_loop_t *loop) {
 		//////////////////////////////////////////
 		if(heap_top((ev_timer_t **)(loop->heap))->cb == NULL) {
 			heap_pop(loop);
+			printf("+++++++++(cb == null)+++++++\n");
 			// ts.tv_sec = 0;
 			// ts.tv_nsec = 0;
 			// return ts;
@@ -209,13 +217,30 @@ timespec tick(ev_loop_t *loop) {
 void* check_timer(ev_loop_t *loop, int tfd, EV_TYPE events) {
 	printf("check_timer_out\n");
 
+
+	ev_timer_t **heap = loop->heap;
+    int i;
+    for (i=1; i<=loop->heap_size; i++) {
+    	printf("timeout:%lf, fd:%d, sec:%ld.%ld, cb:%x\n", heap[i]->timeout, heap[i]->fd, heap[i]->ts.tv_sec, heap[i]->ts.tv_nsec, heap[i]->cb);
+    }
+    
 	uint64_t data;
-    read(tfd, &data, 8);
+    read(loop->timer_fd, &data, 8);
 
     struct timespec ts;
     ts = tick(loop);
     struct itimerspec newValue;
+    bzero(&newValue,sizeof(newValue));  
     newValue.it_value = ts;
-    timerfd_settime(tfd, 0, &newValue, NULL);
+    printf("*******settime in check_timer, ts:%ld.%ld\n", ts.tv_sec, ts.tv_nsec);
+    printf("*******settime in check_timer, newValue:%ld.%ld\n", newValue.it_value.tv_sec, newValue.it_value.tv_nsec);
+    //if(newValue.it_value.tv_sec==0)
+    //	newValue.it_value.tv_sec = 2;
+   
+	int ret; 
+    ret = timerfd_settime(loop->timer_fd, 0, &newValue, NULL);
+    if (ret == -1) {
+    	printf("timerfd_settime err:%s\n", strerror(errno));
+    }
     return NULL;
 }

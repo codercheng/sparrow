@@ -6,6 +6,7 @@
 	<title>Understanding Ajax Long-Polling Requests - WebCooker</title>
 </head>
 <body>
+<div id="ret"><h2>will change??</h2></div>
 <table style="width: 100%;">
 	<tbody>
 		<tr>
@@ -31,7 +32,7 @@ jQuery( function(){
 	// Form Submission
 	jQuery('#send-message').submit( function(){
 		var message = jQuery('#send-message input[name=message]').val();
-		if( jQuery.trim( message ) == '' ){
+		if( jQuery.trim( message ) === '' ){
 			alert('Enter a message!');
 			return false;
 		}
@@ -67,19 +68,23 @@ jQuery( function(){
 			type: 'GET',
 			data: 'timestamp=' + timestamp + '&lastId=' + lastId,
 			dataType: 'json',
-			success: function(){
+			//timeout: 10000,
+			success: function(data){
 				//clearInterval( t );
-				
+			//	alert("hello, success!");
+				$("#ret").html(data.firstName);
 				t=setTimeout( function(){
-					messages_longpolling( payload.timestamp, payload.lastId );
-				}, 1000 );
+					messages_longpolling('231232423');
+				}, 500 );
 				
 			},
 			error: function(){
+			//	alert("hello error!");
 				//clearInterval( t );
+				$("#ret").html("<h2>fail!</2>");
 				t=setTimeout( function(){
 					messages_longpolling( '123435252');
-				}, 1000 );
+				}, 500 );
 			}
 		});
 	}

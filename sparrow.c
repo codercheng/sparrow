@@ -102,8 +102,13 @@ void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
 	time_t t;
 	t = time(NULL);
 	printf("hello:%ld, i am %d\n", t, timer->fd);
-	if(fd_records[timer->fd].active)
+	char test[] = "{ \"firstName\":\"Bill\" , \"lastName\":\"Gates\" }";
+	int n = write(timer->fd, test, sizeof(test));
+	printf("----------n:%d\n", n);
+	if(fd_records[timer->fd].active) {
+		printf("timeout ev_unregister\n");
 		ev_unregister(loop, timer->fd);
+	}
 	close(timer->fd);
 }
 
@@ -198,7 +203,12 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			}
 		} else if(nread == 0) {
 			//client quit
-			//printf("client quit\n");
+			printf("client quit\n");
+			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+			if(timer != NULL) {
+				timer->cb = NULL;
+				printf("set cb = null\n");
+			}
 			ev_unregister(loop, sock);
 			close(sock);
 			return NULL;
@@ -573,15 +583,21 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	    if(fd_records[sockfd].read_pos == fd_records[sockfd].total_len) {
 	   		int keep_alive = fd_records[sockfd].keep_alive;
 	   		ev_timer_t *timer= (ev_timer_t *)fd_records[sockfd].timer_ptr;
+	   		int flag = 0;
+	   		if(timer != NULL) {
+	   			timer->cb = NULL;
+	   			printf("--------(set cb = null)-------\n");
+	   			flag = 1;
+	   		}
 	   		ev_unregister(loop, sockfd);
 	  		if(keep_alive) {
-	  			if(timer == NULL) {
-	  				add_timer(loop, 5, process_timeout, 0, (void*)sockfd);
+	  			ev_register(loop, sockfd, EV_READ, read_http);
+	  			if(/*timer == NULL*/!flag) {
+	  				add_timer(loop, 10, process_timeout, 0, (void*)sockfd);
 	  			} else {
-	  				timer->cb = NULL;
-	  				add_timer(loop, 5, process_timeout, 0, (void*)sockfd);
+	  				printf("-----=-=-=-=-=-=-=-=-=-==---resue\n");
+	  				add_timer(loop, 10, process_timeout, 0, (void*)sockfd);
 	  			}
-	   			ev_register(loop, sockfd, EV_READ, read_http);
 	   		}
 	   		else {
 	   			close(sockfd);
