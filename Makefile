@@ -1,13 +1,13 @@
-OBJS = sparrow.o thread_manage.o file.o ev_loop.o config.o async_log.o url.o min_heap.o
+OBJS = sparrow.o thread_manage.o file.o ev_loop.o config.o async_log.o url.o min_heap.o cJSON.o
 CC = gcc
 DEBUG = -g
 CFLAGS = -Wall -c $(DEBUG)
 LFLAGS = -Wall -pthread  $(DEBUG)
 
 sparrow: $(OBJS)
-	$(CC) $(LFLAGS) $(OBJS) -lrt -o sparrow
+	$(CC) $(LFLAGS) $(OBJS) -lrt -lm -o sparrow
 
-sparrow.o: sparrow.c sparrow.h global.h  ev_loop.h async_log.h thread_manage.h config.h file.h mime.h url.h min_heap.h
+sparrow.o: sparrow.c sparrow.h global.h  ev_loop.h async_log.h thread_manage.h config.h file.h mime.h url.h min_heap.h cJSON.h
 	$(CC) $(CFLAGS)  sparrow.c
 
 thread_manage.o: thread_manage.c thread_manage.h sparrow.h global.h async_log.h ev_loop.h  config.h file.h mime.h
@@ -30,6 +30,9 @@ url.o: url.c url.h
 
 min_heap.o: min_heap.c min_heap.h ev_loop.h
 	$(CC) $(CFLAGS) min_heap.c
+
+cJSON.o: cJSON.c cJSON.h
+	$(CC) $(CFLAGS) cJSON.c
 
 clean:
 	rm *.o sparrow

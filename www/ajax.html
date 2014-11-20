@@ -68,19 +68,15 @@ jQuery( function(){
 			type: 'GET',
 			data: 'timestamp=' + timestamp + '&lastId=' + lastId,
 			dataType: 'json',
-			//timeout: 10000,
+			timeout: 40000,
 			success: function(data){
-				//clearInterval( t );
-			//	alert("hello, success!");
-				$("#ret").html("success");
+				$("#ret").html("<h1>"+data[0].name+","+data[0].age+"</h1>");
 				t=setTimeout( function(){
 					messages_longpolling('231232423');
 				}, 1000 );
 				
 			},
 			error: function(){
-			//	alert("hello error!");
-				//clearInterval( t );
 				$("#ret").html(Math.random());
 				t=setTimeout( function(){
 					messages_longpolling( '123435252');

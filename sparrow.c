@@ -28,6 +28,7 @@
 
 #include "util.h"
 #include "min_heap.h"
+#include "cJSON.h"
 
 char *work_dir;
 
@@ -101,7 +102,7 @@ static
 void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
 	time_t t;
 	t = time(NULL);
-	printf("hello:%ld, i am %d\n", t, timer->fd);
+	printf("11111111------hello:%ld, i am %d\n", t, timer->fd);
 	// char test[] = "{ \"firstName\":\"Bill\" , \"lastName\":\"Gates\" }";
 	// int n = write(timer->fd, test, sizeof(test));
 	// printf("----------n:%d\n", n);
@@ -111,9 +112,43 @@ void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
 	}
 	close(timer->fd);
 }
+static 
+void process_timeout2(ev_loop_t *loop, ev_timer_t *timer) {
+	time_t t;
+	t = time(NULL);
 
+	cJSON *root, *dir1;
+	char *out;
+
+	root = cJSON_CreateArray();
+	cJSON_AddItemToArray(root,dir1=cJSON_CreateObject());
+	cJSON_AddStringToObject(dir1,"name","simon");
+	cJSON_AddNumberToObject(dir1,"age", rand()%100);
+	out = cJSON_Print(root);
+	cJSON_Delete(root);
+
+	printf("================================\n");
+	printf("%s\n", out);
+	printf("================================\n");
+
+
+	//printf("22222222--------hello:%ld, i am %d\n", t, timer->fd);
+	//char test[] = "{\"firstName\":\"Bill\",\"lastName\":\"Gates\"};";
+	int n = write(timer->fd, out, strlen(out));
+	printf("----------n:%d\n", n);
+	if(fd_records[timer->fd].active) {
+		printf("timeout ev_unregister\n");
+		ev_unregister(loop, timer->fd);
+	}
+	close(timer->fd);
+}
 
 void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
+	if(sock > conf.max_conn) {
+		ev_unregister(loop, sock);
+		close(sock);
+		return NULL;
+	}
 	struct sockaddr_in client_sock;
 	socklen_t len = sizeof(client_sock);
 	int conn_fd;
@@ -178,6 +213,12 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 	return NULL;
 }
 void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
+	if(sock > conf.max_conn) {
+		ev_unregister(loop, sock);
+		close(sock);
+		return NULL;
+	}
+
 	char *buf = fd_records[sock].buf;
 	int read_complete = 0;
 
@@ -267,11 +308,11 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			//add_timer(loop, 40, process_timeout, 0, (void*)sock);
 			ev_timer_t *timer= (ev_timer_t *)fd_records[sock].timer_ptr;
 			if(timer == NULL) {
-  				add_timer(loop, 40, process_timeout, 0, (void*)sock);
+  				add_timer(loop, 15, process_timeout2, 0, (void*)sock);
   			} else {
   				printf("here---\n");
   				timer->cb = NULL;
-  				add_timer(loop, 40, process_timeout, 0, (void*)sock);
+  				add_timer(loop, 15, process_timeout2, 0, (void*)sock);
   			}
 			return NULL;
 		}
@@ -423,6 +464,12 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 
 void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
+	if(sockfd > conf.max_conn) {
+		ev_unregister(loop, sockfd);
+		close(sockfd);
+		return NULL;
+	}
+
 	if(conf.use_tcp_cork) {
     	int on = 1;
     	setsockopt(sockfd, SOL_TCP, TCP_CORK, &on, sizeof(on));
@@ -504,6 +551,12 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 }
 
 void *write_dir_html(ev_loop_t *loop, int sockfd, EV_TYPE events) {
+	if(sockfd > conf.max_conn) {
+		ev_unregister(loop, sockfd);
+		close(sockfd);
+		return NULL;
+	}
+
 	if(conf.use_tcp_cork) {
     	int on = 1;
     	setsockopt(sockfd, SOL_TCP, TCP_CORK, &on, sizeof(on));
@@ -555,6 +608,11 @@ int process_dir_html(char *path, int sockfd) {
 
 
 void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
+	if(sockfd > conf.max_conn) {
+		ev_unregister(loop, sockfd);
+		close(sockfd);
+		return NULL;
+	}
 	//sleep(50);
 	int ffd = fd_records[sockfd].ffd;
 	while(1) {
