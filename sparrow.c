@@ -135,6 +135,7 @@ void process_timeout2(ev_loop_t *loop, ev_timer_t *timer) {
 	//printf("22222222--------hello:%ld, i am %d\n", t, timer->fd);
 	//char test[] = "{\"firstName\":\"Bill\",\"lastName\":\"Gates\"};";
 	int n = write(timer->fd, out, strlen(out));
+	free(out);
 	printf("----------n:%d\n", n);
 	if(fd_records[timer->fd].active) {
 		printf("timeout ev_unregister\n");
@@ -303,8 +304,20 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		//**************************************************************************
 		// Dynamic service entry
 		//**************************************************************************
+		printf("path:%s-\n", path);
 		if(strncmp(path, "livechat", 8)==0) {
+			//stop the read
+			int ret;
+			ret = ev_stop(loop, sock, EV_READ);
+			if(ret == -1) {
+				ev_unregister(loop, sock);
+				close(sock);
+				return NULL;
+			}
+
+
 			printf("-------------live-chat-----------\n");
+			printf("path:%s-\n", path);
 			//add_timer(loop, 40, process_timeout, 0, (void*)sock);
 			ev_timer_t *timer= (ev_timer_t *)fd_records[sock].timer_ptr;
 			if(timer == NULL) {
@@ -316,7 +329,31 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
   			}
 			return NULL;
 		}
+		if(strncmp(path, "push", 4)==0) {
+			printf("--------------push---------------\n");
+			printf("path:%s-\n", path);
+			cJSON *root;
+			char *out;
 
+			root = cJSON_CreateObject();
+			cJSON_AddStringToObject(root, "status", "success");
+			out = cJSON_Print(root);
+			cJSON_Delete(root);
+
+			printf("================================\n");
+			printf("%s\n", out);
+			printf("================================\n");
+
+			int n = write(sock, out, strlen(out));
+			free(out);
+			printf("----------n:%d\n", n);
+			if(fd_records[sock].active) {
+				printf("in push ev_unregister\n");
+				ev_unregister(loop, sock);
+			}
+			close(sock);
+			return NULL;
+		}
 		//**************************************************************************
 
 				
@@ -651,10 +688,10 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	  		if(keep_alive) {
 	  			ev_register(loop, sockfd, EV_READ, read_http);
 	  			if(/*timer == NULL*/!flag) {
-	  				add_timer(loop, 10, process_timeout, 0, (void*)sockfd);
+	  				add_timer(loop, 15, process_timeout, 0, (void*)sockfd);
 	  			} else {
 	  				printf("-----=-=-=-=-=-=-=-=-=-==---resue\n");
-	  				add_timer(loop, 10, process_timeout, 0, (void*)sockfd);
+	  				add_timer(loop, 15, process_timeout, 0, (void*)sockfd);
 	  			}
 	   		}
 	   		else {

@@ -20,7 +20,7 @@
 							</td>
 			<td width="50%">
 				<h4>Send Us Message</h4>
-				<form method="POST" id="send-message">
+				<form id="send-message">
 					<input name="message" rows="10" style="width: 100%;" placeholder="Enter message and hit Enter">
 				</form>
 			</td>
@@ -38,8 +38,8 @@ jQuery( function(){
 		}
 		
 		jQuery.ajax({
-			url: 'submit.php',
-			type: 'POST',
+			url: 'push',
+			type: 'GET',
 			data: 'message=' + message,
 			dataType: 'json',
 			success: function( payload ){
@@ -48,8 +48,14 @@ jQuery( function(){
 				} else if( payload.status == 'empty-message' ){
 					alert('Enter a message!');
 				} else if( payload.status == 'success' ){
+					var text = jQuery('#send-message input[name=message]').val();
+					jQuery('.items').prepend( '<li id="' + 121212 + '">' + 121212 + '. ' + 
+						text + '</li>' );
 					jQuery('#send-message input[name=message]').val('');
 				}
+			},
+			error: function(){
+				alert("push error!");
 			}
 		});
 		return false;
@@ -80,7 +86,7 @@ jQuery( function(){
 				$("#ret").html(Math.random());
 				t=setTimeout( function(){
 					messages_longpolling( '123435252');
-				}, 1000 );
+				}, 5000 );
 			}
 		});
 	}
