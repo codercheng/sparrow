@@ -143,6 +143,24 @@ void timer_heap_init(ev_loop_t *loop, int capacity) {
 
 void add_timer(ev_loop_t *loop, double timeout, cb_timer_t cb, 
 									uint8_t repeat, void *ptr) {
+
+	if(loop->heap_size >= loop->heap_capacity) {
+		ev_timer_t **temp = (ev_timer_t **)malloc((2*(loop->heap_capacity) + 1)*sizeof(ev_timer_t *));
+		if(temp == NULL) {
+			fprintf(stderr, "err in add timer when malloc:%s\n", strerror(errno));
+			return;
+		}
+		int i;
+		for(i=0; i<2*(loop->heap_capacity)+1; i++) {
+			temp[i] = NULL;
+		}
+		loop->heap_capacity *=2;
+		for(i=0; i<=loop->heap_size; i++) {
+			temp[i] = loop->heap[i];
+		}
+		free(loop->heap);
+		loop->heap = (void **)temp;
+	}
 	int fd = (int)ptr;
 	printf("fd:%d\n", fd);
 	struct timespec ts;
@@ -218,7 +236,7 @@ void* check_timer(ev_loop_t *loop, int tfd, EV_TYPE events) {
 	printf("check_timer_out\n");
 
 
-	ev_timer_t **heap = loop->heap;
+	ev_timer_t **heap = (ev_timer_t **)loop->heap;
     int i;
     for (i=1; i<=loop->heap_size; i++) {
     	printf("timeout:%lf, fd:%d, sec:%ld.%ld, cb:%x\n", heap[i]->timeout, heap[i]->fd, heap[i]->ts.tv_sec, heap[i]->ts.tv_nsec, heap[i]->cb);
