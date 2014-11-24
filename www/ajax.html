@@ -43,19 +43,19 @@ jQuery( function(){
 			data: 'message=' + message,
 			dataType: 'json',
 			success: function( payload ){
-				if( payload.status == 'error' ){
-					alert('Error!');
-				} else if( payload.status == 'empty-message' ){
+				if( payload.message == 'error' ){
+					$("#ret").html("<h2>push err</h2>");
+				} else if( payload.message == 'empty-message' ){
 					alert('Enter a message!');
-				} else if( payload.status == 'success' ){
-					var text = jQuery('#send-message input[name=message]').val();
+				} else{
+					var text = payload.message;//jQuery('#send-message input[name=message]').val();
 					jQuery('.items').prepend( '<li id="' + 121212 + '">' + 121212 + '. ' + 
 						text + '</li>' );
 					jQuery('#send-message input[name=message]').val('');
 				}
 			},
 			error: function(){
-				alert("push error!");
+				$("#ret").html("<h2>push err</h2>");
 			}
 		});
 		return false;
@@ -76,7 +76,11 @@ jQuery( function(){
 			dataType: 'json',
 			timeout: 40000,
 			success: function(data){
-				$("#ret").html("<h1>"+data[0].name+","+data[0].age+"</h1>");
+				$("#ret").html("<h1>"+data.message+"</h1>");
+				var text = data.message;
+					jQuery('.items').prepend( '<li id="' + 121212 + '">' + 121212 + '. ' + 
+						text + '</li>' );
+					jQuery('#send-message input[name=message]').val('');
 				t=setTimeout( function(){
 					messages_longpolling('231232423');
 				}, 1000 );

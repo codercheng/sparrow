@@ -142,7 +142,7 @@ void timer_heap_init(ev_loop_t *loop, int capacity) {
 
 
 void add_timer(ev_loop_t *loop, double timeout, cb_timer_t cb, 
-									uint8_t repeat, void *ptr) {
+								uint8_t repeat, uint8_t groupid, void *ptr) {
 
 	if(loop->heap_size >= loop->heap_capacity) {
 		ev_timer_t **temp = (ev_timer_t **)malloc((2*(loop->heap_capacity) + 1)*sizeof(ev_timer_t *));
@@ -176,6 +176,7 @@ void add_timer(ev_loop_t *loop, double timeout, cb_timer_t cb,
 	timer->cb = cb;
 	timer->fd = fd;
 	timer->repeat = repeat;
+	timer->groupid = groupid;
 	
 	fd_records[fd].timer_ptr = timer;
 	heap_add(loop, timer);

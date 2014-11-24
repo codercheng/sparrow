@@ -114,29 +114,30 @@ void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
 }
 static 
 void process_timeout2(ev_loop_t *loop, ev_timer_t *timer) {
-	time_t t;
-	t = time(NULL);
+	// time_t t;
+	// t = time(NULL);
 
-	cJSON *root, *dir1;
-	char *out;
+	// cJSON *root, *dir1;
+	// char *out;
 
-	root = cJSON_CreateArray();
-	cJSON_AddItemToArray(root,dir1=cJSON_CreateObject());
-	cJSON_AddStringToObject(dir1,"name","simon");
-	cJSON_AddNumberToObject(dir1,"age", rand()%100);
-	out = cJSON_Print(root);
-	cJSON_Delete(root);
+	// root = cJSON_CreateArray();
+	// cJSON_AddItemToArray(root,dir1=cJSON_CreateObject());
+	// cJSON_AddStringToObject(dir1,"name","simon");
+	// cJSON_AddNumberToObject(dir1,"age", rand()%100);
+	// out = cJSON_Print(root);
+	// cJSON_Delete(root);
 
-	printf("================================\n");
-	printf("%s\n", out);
-	printf("================================\n");
+	// printf("================================\n");
+	// printf("%s\n", out);
+	// printf("================================\n");
 
 
-	//printf("22222222--------hello:%ld, i am %d\n", t, timer->fd);
-	//char test[] = "{\"firstName\":\"Bill\",\"lastName\":\"Gates\"};";
-	int n = write(timer->fd, out, strlen(out));
-	free(out);
-	printf("----------n:%d\n", n);
+	// //printf("22222222--------hello:%ld, i am %d\n", t, timer->fd);
+	// //char test[] = "{\"firstName\":\"Bill\",\"lastName\":\"Gates\"};";
+	// int n = write(timer->fd, out, strlen(out));
+	// free(out);
+
+	printf("--------+++++++++++++:timeout++++++++\n");
 	if(fd_records[timer->fd].active) {
 		printf("timeout ev_unregister\n");
 		ev_unregister(loop, timer->fd);
@@ -317,26 +318,38 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 
 			printf("-------------live-chat-----------\n");
-			printf("path:%s-\n", path);
+			printf("sock:%d, path:%s-\n", sock, path);
 			//add_timer(loop, 40, process_timeout, 0, (void*)sock);
 			ev_timer_t *timer= (ev_timer_t *)fd_records[sock].timer_ptr;
 			if(timer == NULL) {
-  				add_timer(loop, 15, process_timeout2, 0, (void*)sock);
+  				add_timer(loop, 15, process_timeout2, 0, 1, (void*)sock);
   			} else {
   				printf("here---\n");
   				timer->cb = NULL;
-  				add_timer(loop, 15, process_timeout2, 0, (void*)sock);
+  				add_timer(loop, 15, process_timeout2, 0, 1, (void*)sock);
   			}
+
 			return NULL;
 		}
 		if(strncmp(path, "push", 4)==0) {
 			printf("--------------push---------------\n");
-			printf("path:%s-\n", path);
+			printf("sock:%d, path:%s-\n", sock, path);
+			char *p = strchr(path, '=');
+			if(p==NULL || p=='\0') {
+				return NULL;
+			}
+			p++;
+			if(strlen(p) > 256) {
+				p[strlen(p)] = '\0';
+			}
+			//char message[256];
+
+
 			cJSON *root;
 			char *out;
 
 			root = cJSON_CreateObject();
-			cJSON_AddStringToObject(root, "status", "success");
+			cJSON_AddStringToObject(root, "message", p);
 			out = cJSON_Print(root);
 			cJSON_Delete(root);
 
@@ -344,9 +357,27 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			printf("%s\n", out);
 			printf("================================\n");
 
-			int n = write(sock, out, strlen(out));
+			int i;
+			ev_timer_t *tmp=NULL;
+			int buf_len = 0;
+			for(i=1; i<=loop->heap_size; i++) {
+				tmp = (ev_timer_t *)(loop->heap[i]);
+				if(tmp->cb != NULL && tmp->groupid == 1 && fd_records[tmp->fd].active) {
+					buf_len = sprintf(fd_records[tmp->fd].buf, "%s", out);
+					fd_records[tmp->fd].buf[buf_len] = '\0';
+					fd_records[tmp->fd].http_code = 2048;//push
+					printf("here when push...\n");
+					ev_register(loop, tmp->fd, EV_WRITE, write_http_header);
+				}
+			}
+			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+			if(timer != NULL) {
+				timer->cb = NULL;
+				printf("set cb = null\n");
+			}
+			//int n = write(sock, out, strlen(out));
 			free(out);
-			printf("----------n:%d\n", n);
+			//printf("----------n:%d\n", n);
 			if(fd_records[sock].active) {
 				printf("in push ev_unregister\n");
 				ev_unregister(loop, sock);
@@ -541,6 +572,17 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 				close(sockfd);
 				return NULL;
 			}
+			if(fd_records[sockfd].http_code == 2048) {
+				ev_timer_t * timer = (ev_timer_t *)(fd_records[sockfd].timer_ptr);
+				if(timer != NULL) {
+					timer->cb = NULL;
+					printf("set cb = null\n");
+				}
+				ev_unregister(loop, sockfd);
+				close(sockfd);
+				printf("==============2048===============\n");
+				return NULL;
+			}
 
 			ev_stop(loop, sockfd, EV_WRITE);
 			if(fd_records[sockfd].http_code != DIR_CODE) {
@@ -688,10 +730,10 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	  		if(keep_alive) {
 	  			ev_register(loop, sockfd, EV_READ, read_http);
 	  			if(/*timer == NULL*/!flag) {
-	  				add_timer(loop, 15, process_timeout, 0, (void*)sockfd);
+	  				add_timer(loop, 15, process_timeout, 0, 0, (void*)sockfd);
 	  			} else {
 	  				printf("-----=-=-=-=-=-=-=-=-=-==---resue\n");
-	  				add_timer(loop, 15, process_timeout, 0, (void*)sockfd);
+	  				add_timer(loop, 15, process_timeout, 0, 0, (void*)sockfd);
 	  			}
 	   		}
 	   		else {
