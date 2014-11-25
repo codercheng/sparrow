@@ -334,15 +334,20 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		if(strncmp(path, "push", 4)==0) {
 			printf("--------------push---------------\n");
 			printf("sock:%d, path:%s-\n", sock, path);
-			char *p = strchr(path, '=');
+			char *p = strstr(path, "message=");
 			if(p==NULL || p=='\0') {
 				return NULL;
 			}
-			p++;
+			p+=8;
+			char *p2 = strchr(p, '&');
+			if(p2 != NULL) {
+				*p2 = '\0';
+			}
 			if(strlen(p) > 256) {
 				p[strlen(p)] = '\0';
 			}
-			//char message[256];
+			char message[512];
+			memset(message, 0, sizeof(message));
 
 
 			cJSON *root;
@@ -354,7 +359,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			cJSON_Delete(root);
 
 			printf("================================\n");
-			printf("%s\n", out);
+			snprintf(message, 512, "dachat(%s)", out);
+			printf("--%s--\n", message);
 			printf("================================\n");
 
 			int i;
@@ -363,7 +369,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			for(i=1; i<=loop->heap_size; i++) {
 				tmp = (ev_timer_t *)(loop->heap[i]);
 				if(tmp->cb != NULL && tmp->groupid == 1 && fd_records[tmp->fd].active) {
-					buf_len = sprintf(fd_records[tmp->fd].buf, "%s", out);
+					buf_len = sprintf(fd_records[tmp->fd].buf, "%s", message);
 					fd_records[tmp->fd].buf[buf_len] = '\0';
 					fd_records[tmp->fd].http_code = 2048;//push
 					printf("here when push...\n");
