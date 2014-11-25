@@ -200,12 +200,14 @@ timespec tick(ev_loop_t *loop) {
 	//time now >= heap top
 	while(heap_top((ev_timer_t **)(loop->heap))!=NULL && !timer_cmp_lt(ts, heap_top((ev_timer_t **)(loop->heap))->ts)) {
 		//////////////////////////////////////////
-		if(heap_top((ev_timer_t **)(loop->heap))->cb == NULL) {
+		//heap != null, and delete all the cb==null timer in the head
+		int bcontinue = 0;
+		while(heap_top((ev_timer_t **)(loop->heap))!=NULL && heap_top((ev_timer_t **)(loop->heap))->cb == NULL) {
 			heap_pop(loop);
 			printf("+++++++++(cb == null)+++++++\n");
-			// ts.tv_sec = 0;
-			// ts.tv_nsec = 0;
-			// return ts;
+			bcontinue = 1;
+		}
+		if(bcontinue) {
 			continue;
 		}
 		////////////////////////////////, int *heap_size/////////
