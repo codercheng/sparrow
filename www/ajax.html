@@ -38,10 +38,12 @@ jQuery( function(){
 		}
 		
 		jQuery.ajax({
-			url: 'push',
+			url: 'http://127.0.0.1:6868/push',
 			type: 'GET',
 			data: 'message=' + message,
-			dataType: 'json',
+			dataType: 'jsonp',
+			//jsonp: "callback",
+            //jsonpCallback:"jsonpCallback",
 			success: function( payload ){
 				if( payload.message == 'error' ){
 					$("#ret").html("<h2>push err</h2>");
@@ -55,7 +57,8 @@ jQuery( function(){
 				}
 			},
 			error: function(){
-				$("#ret").html("<h2>push err</h2>");
+				//$("#ret").html("<h2>push err</h2>");
+				jQuery('#send-message input[name=message]').val('');
 			}
 		});
 		return false;
@@ -70,10 +73,12 @@ jQuery( function(){
 		}
 				
 		jQuery.ajax({
-			url: 'livechat',
+			url: 'http://127.0.0.1:6868/livechat',
 			type: 'GET',
 			data: 'timestamp=' + timestamp + '&lastId=' + lastId,
-			dataType: 'json',
+			dataType: "jsonp",
+			jsonp: "callback",
+            jsonpCallback:"dachat",
 			timeout: 40000,
 			success: function(data){
 				$("#ret").html("<h1>"+data.message+"</h1>");
@@ -83,14 +88,14 @@ jQuery( function(){
 					jQuery('#send-message input[name=message]').val('');
 				t=setTimeout( function(){
 					messages_longpolling('231232423');
-				}, 1000 );
+				}, 500 );
 				
 			},
 			error: function(){
-				$("#ret").html(Math.random());
+				$("#ret").html("livechat err>>"+Math.random());
 				t=setTimeout( function(){
 					messages_longpolling( '123435252');
-				}, 5000 );
+				}, 500 );
 			}
 		});
 	}
