@@ -64,6 +64,7 @@ int main()
 	signal(SIGPIPE, SIG_IGN);
 	listen_sock = tcp_server(conf.listen_port);
 
+	printf("listen:%d\n", listen_sock);
 	if(listen_sock == -1) {
 		if(conf.log_enable) {
 			log_error("listen err\n");
@@ -114,35 +115,18 @@ void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
 }
 static 
 void process_timeout2(ev_loop_t *loop, ev_timer_t *timer) {
-	// time_t t;
-	// t = time(NULL);
-
-	// cJSON *root, *dir1;
-	// char *out;
-
-	// root = cJSON_CreateArray();
-	// cJSON_AddItemToArray(root,dir1=cJSON_CreateObject());
-	// cJSON_AddStringToObject(dir1,"name","simon");
-	// cJSON_AddNumberToObject(dir1,"age", rand()%100);
-	// out = cJSON_Print(root);
-	// cJSON_Delete(root);
-
-	// printf("================================\n");
-	// printf("%s\n", out);
-	// printf("================================\n");
-
-
-	// //printf("22222222--------hello:%ld, i am %d\n", t, timer->fd);
-	// //char test[] = "{\"firstName\":\"Bill\",\"lastName\":\"Gates\"};";
-	// int n = write(timer->fd, out, strlen(out));
-	// free(out);
-
-	printf("--------+++++++++++++:timeout++++++++\n");
+	printf("--------------------------timeout begin------------------------------\n");
+	ev_timer_t * timer2 = (ev_timer_t *)(fd_records[timer->fd].timer_ptr);
+	if(timer2 != NULL) {
+		timer2->cb = NULL;
+		printf("set cb = null\n");
+	}
 	if(fd_records[timer->fd].active) {
 		printf("timeout ev_unregister\n");
 		ev_unregister(loop, timer->fd);
 	}
 	close(timer->fd);
+	printf("--------------------------timeout end--------------------------------\n");
 }
 
 void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
@@ -166,7 +150,7 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 			close(conn_fd);
 			return NULL;
 		}
-
+		printf("++++++++++++++++++++++++++connections+++++++++++++++++++++\n");
 		setnonblocking(conn_fd);
 
 		if(conf.log_enable) {
@@ -188,7 +172,8 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 	    	int on = 1;
 	    	setsockopt(sock, SOL_TCP, TCP_CORK, &on, sizeof(on));
 	    }
-		int ret = ev_register(ev_loop_queue[(round_robin_num++)%conf.worker_thread_num/*rand()%conf.worker_thread_num*/], conn_fd, EV_READ, read_http);
+	    printf("register fd:%d, EV_READ\n", conn_fd);
+		int ret = ev_register(ev_loop_queue[0], conn_fd, EV_READ, read_http);
 		if(ret == -1) {
 			if(conf.log_enable) {
 				log_error("register err\n");
@@ -272,14 +257,14 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		////////////////////////////////////////////////////////////
 		///               http parse(tmp)
 		////////////////////////////////////////////////////////////
-		int index;
-		for(index=0; index<strlen(buf); index++) {
-			buf[index] = tolower(buf[index]);
-		}
-		if(strstr(buf, "keep-alive")) {
-			fd_records[sock].keep_alive = 1;
-			printf("keep_alive\n");
-		}
+		// int index;
+		// for(index=0; index<strlen(buf); index++) {
+		// 	buf[index] = tolower(buf[index]);
+		// }
+		// if(strstr(buf, "keep-alive")) {
+		// 	fd_records[sock].keep_alive = 1;
+		// 	printf("keep_alive\n");
+		// }
 
 		////////////////////////////////////////////////////////////
 		char *path_end = strchr(buf+4, ' ');
@@ -294,7 +279,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			sprintf(path, "/%s", conf.def_home_page);
 		} else {
 			/*decode, 解决url中包含中文被转码的问题*/
-			url_decode(path, strlen(path));
+			//url_decode(path, strlen(path));
 		}
 		
 		char *prefix = work_dir;
@@ -305,7 +290,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		//**************************************************************************
 		// Dynamic service entry
 		//**************************************************************************
-		printf("path:%s-\n", path);
+		//printf("path:%s-\n", path);
 		if(strncmp(path, "livechat", 8)==0) {
 			//stop the read
 			int ret;
@@ -318,7 +303,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 
 			printf("-------------live-chat-----------\n");
-			printf("sock:%d, path:%s-\n", sock, path);
+			printf("sockfd:%d\n", sock);
+			//printf("sock:%d, path:%s-\n", sock, path);
 			//add_timer(loop, 40, process_timeout, 0, (void*)sock);
 			ev_timer_t *timer= (ev_timer_t *)fd_records[sock].timer_ptr;
 			if(timer == NULL) {
@@ -333,7 +319,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		}
 		if(strncmp(path, "push", 4)==0) {
 			printf("--------------push---------------\n");
-			printf("sock:%d, path:%s-\n", sock, path);
+			printf("sockfd:%d\n", sock);
+			//printf("sock:%d, path:%s-\n", sock, path);
 			char *p = strstr(path, "message=");
 			if(p==NULL || p=='\0') {
 				return NULL;
@@ -394,7 +381,11 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			return NULL;
 		}
 		//**************************************************************************
-
+		//exclude  all the other connections
+		ev_unregister(loop, sock);
+		close(sock);
+		return NULL;
+		//**************************************************************************
 				
 		struct stat filestat;
 		time_t last_modified_time;
@@ -547,7 +538,7 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 	}
 
 	if(conf.use_tcp_cork) {
-    	int on = 1;
+    	int on = 0;
     	setsockopt(sockfd, SOL_TCP, TCP_CORK, &on, sizeof(on));
     }
 	while(1) {
