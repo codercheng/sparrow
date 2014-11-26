@@ -79,7 +79,7 @@ jQuery( function(){
 			dataType: "jsonp",
 			jsonp: "callback",
             jsonpCallback:"dachat",
-			timeout: 40000,
+			//timeout: 40000,
 			success: function(data){
 				$("#ret").html("<h1>"+data.message+"</h1>");
 				var text = data.message;
@@ -96,6 +96,7 @@ jQuery( function(){
 				t=setTimeout( function(){
 					messages_longpolling( '123435252');
 				}, 500 );
+				jQuery('#send-message input[name=message]').val('');
 			}
 		});
 	}
