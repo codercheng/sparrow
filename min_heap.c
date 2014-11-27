@@ -162,7 +162,7 @@ void add_timer(ev_loop_t *loop, double timeout, cb_timer_t cb,
 		loop->heap = (void **)temp;
 	}
 	int fd = (int)ptr;
-	printf("fd:%d\n", fd);
+	//printf("fd:%d\n", fd);
 	struct timespec ts;
 	ts = double2timespec(timeout);
 
@@ -239,8 +239,8 @@ void* check_timer(ev_loop_t *loop, int tfd, EV_TYPE events) {
 //	printf("check_timer_out\n");
 
 
-	ev_timer_t **heap = (ev_timer_t **)loop->heap;
-    int i;
+//	ev_timer_t **heap = (ev_timer_t **)loop->heap;
+  //  int i;
   //  for (i=1; i<=loop->heap_size; i++) {
     //	printf("timeout:%lf, fd:%d, sec:%ld.%ld, cb:%x\n", heap[i]->timeout, heap[i]->fd, heap[i]->ts.tv_sec, heap[i]->ts.tv_nsec, heap[i]->cb);
     //}
