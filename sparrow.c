@@ -285,7 +285,11 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		char *path_end = strchr(buf+4, ' ');
 		int len = path_end - buf - 4 -1;
 
-		char path[256];
+		char path[1024+1];
+		memset(path, 0, sizeof(path));
+		if(len > 1024)
+				len = 1024;
+		
 		strncpy(path, buf+1+4, len);
 		path[len] = '\0';        //can not forget
 		
@@ -298,14 +302,15 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		}
 		
 		char *prefix = work_dir;
-		char filename[256];//full path
+		char filename[1024 + 1 + strlen(work_dir)];//full path
+		memset(filename, 0, sizeof(filename));
 		strncpy(filename, prefix, strlen(prefix));
 		strncpy(filename+strlen(prefix), path, strlen(path)+1);
 
 		//**************************************************************************
 		// Dynamic service entry
 		//**************************************************************************
-		printf("path:%s-\n", path);
+		//printf("path:%s-\n", path);
 		if(strncmp(path, "livechat", 8)==0 && 0) {
 			//stop the read
 			int ret;
