@@ -115,18 +115,18 @@ void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
 }
 static 
 void process_timeout2(ev_loop_t *loop, ev_timer_t *timer) {
-	printf("--------------------------timeout begin------------------------------\n");
+//	printf("--------------------------timeout begin------------------------------\n");
 	ev_timer_t * timer2 = (ev_timer_t *)(fd_records[timer->fd].timer_ptr);
 	if(timer2 != NULL) {
 		timer2->cb = NULL;
-		printf("set cb = null\n");
+//		printf("set cb = null\n");
 	}
 	if(fd_records[timer->fd].active) {
 		printf("timeout ev_unregister\n");
 		ev_unregister(loop, timer->fd);
 	}
 	close(timer->fd);
-	printf("--------------------------timeout end--------------------------------\n");
+//	printf("--------------------------timeout end--------------------------------\n");
 }
 
 void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
@@ -150,7 +150,7 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 			close(conn_fd);
 			return NULL;
 		}
-		printf("++++++++++++++++++++++++++connections+++++++++++++++++++++\n");
+//		printf("++++++++++++++++++++++++++connections+++++++++++++++++++++\n");
 		setnonblocking(conn_fd);
 
 		if(conf.log_enable) {
@@ -279,7 +279,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			sprintf(path, "/%s", conf.def_home_page);
 		} else {
 			/*decode, 解决url中包含中文被转码的问题*/
-			//url_decode(path, strlen(path));
+			url_decode(path, strlen(path));
 		}
 		
 		char *prefix = work_dir;
@@ -302,15 +302,15 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			}
 
 
-			printf("-------------live-chat-----------\n");
-			printf("sockfd:%d\n", sock);
+//			printf("-------------live-chat-----------\n");
+//			printf("sockfd:%d\n", sock);
 			//printf("sock:%d, path:%s-\n", sock, path);
 			//add_timer(loop, 40, process_timeout, 0, (void*)sock);
 			ev_timer_t *timer= (ev_timer_t *)fd_records[sock].timer_ptr;
 			if(timer == NULL) {
   				add_timer(loop, 40, process_timeout2, 0, 1, (void*)sock);
   			} else {
-  				printf("here---\n");
+  //				printf("here---\n");
   				timer->cb = NULL;
   				add_timer(loop, 40, process_timeout2, 0, 1, (void*)sock);
   			}
@@ -318,8 +318,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			return NULL;
 		}
 		if(strncmp(path, "push", 4)==0) {
-			printf("--------------push---------------\n");
-			printf("sockfd:%d\n", sock);
+	//		printf("--------------push---------------\n");
+	//		printf("sockfd:%d\n", sock);
 			//printf("sock:%d, path:%s-\n", sock, path);
 			char *p = strstr(path, "message=");
 			if(p==NULL || p=='\0') {
@@ -345,10 +345,10 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			out = cJSON_Print(root);
 			cJSON_Delete(root);
 
-			printf("================================\n");
-			snprintf(message, 512, "dachat(%s)", out);
-			printf("--%s--\n", message);
-			printf("================================\n");
+	//		printf("================================\n");
+			snprintf(message, 512, "livechat(%s)", out);
+	//		printf("--%s--\n", message);
+	//		printf("================================\n");
 
 			int i;
 			ev_timer_t *tmp=NULL;
@@ -359,7 +359,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 					buf_len = sprintf(fd_records[tmp->fd].buf, "%s", message);
 					fd_records[tmp->fd].buf[buf_len] = '\0';
 					fd_records[tmp->fd].http_code = 2048;//push
-					printf("here when push...\n");
+	//				printf("here when push...\n");
 					ev_register(loop, tmp->fd, EV_WRITE, write_http_header);
 				}
 			}
@@ -368,13 +368,13 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
 			if(timer != NULL) {
 				timer->cb = NULL;
-				printf("set cb = null\n");
+	//			printf("set cb = null\n");
 			}
 			//int n = write(sock, out, strlen(out));
 			free(out);
 			//n("----------printf:%d\n", n);
 			if(fd_records[sock].active) {
-				printf("in push ev_unregister\n");
+	//			printf("in push ev_unregister\n");
 				ev_unregister(loop, sock);
 			}
 			close(sock);
