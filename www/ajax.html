@@ -12,10 +12,7 @@
 		<tr>
 			<td width="50%">
 				<h4>Received Messages (Live Stream)</h4>
-				<ul class="items"><li id="2039">2039. bbb</li><li id="2038">2038. bb</li><li id="2037">2037. abc edf</li><li id="2036">2036. aaa</li><li id="2035">2035. nn'</li><li id="2034">2034. Japanese</li><li id="2033">2033. google</li><li id="2032">2032. bbb</li>
-									<li>2031. vv</li>
-									<li>2019. aa</li>
-									<li>2018. aa</li>
+				<ul class="items">
 								</ul>
 							</td>
 			<td width="50%">
@@ -38,7 +35,7 @@ jQuery( function(){
 		}
 		
 		jQuery.ajax({
-			url: 'http://127.0.0.1:6868/push',
+url: 'http://chengshuguang.com:6868/push',
 			type: 'GET',
 			data: 'message=' + message,
 			dataType: 'jsonp',
@@ -73,17 +70,17 @@ jQuery( function(){
 		}
 				
 		jQuery.ajax({
-			url: 'http://127.0.0.1:6868/livechat',
+			url: 'http://chengshuguang.com:6868/livechat',
 			type: 'GET',
 			data: 'timestamp=' + timestamp + '&lastId=' + lastId,
 			dataType: "jsonp",
 			jsonp: "callback",
-            jsonpCallback:"dachat",
+            jsonpCallback:"livechat",
 			//timeout: 40000,
 			success: function(data){
 				$("#ret").html("<h1>"+data.message+"</h1>");
 				var text = data.message;
-					jQuery('.items').prepend( '<li id="' + 121212 + '">' + 121212 + '. ' + 
+					jQuery('.items').prepend( '<li>' + 
 						text + '</li>' );
 					jQuery('#send-message input[name=message]').val('');
 				t=setTimeout( function(){

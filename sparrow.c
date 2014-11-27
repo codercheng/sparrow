@@ -100,14 +100,14 @@ int main()
 
 static 
 void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
-	time_t t;
-	t = time(NULL);
-	printf("11111111------hello:%ld, i am %d\n", t, timer->fd);
+   //	time_t t;
+//	t = time(NULL);
+//	printf("11111111------hello:%ld, i am %d\n", t, timer->fd);
 	// char test[] = "{ \"firstName\":\"Bill\" , \"lastName\":\"Gates\" }";
 	// int n = write(timer->fd, test, sizeof(test));
 	// printf("----------n:%d\n", n);
 	if(fd_records[timer->fd].active) {
-		printf("timeout ev_unregister\n");
+//		printf("timeout ev_unregister\n");
 		ev_unregister(loop, timer->fd);
 	}
 	close(timer->fd);
@@ -137,9 +137,9 @@ void process_timeout2(ev_loop_t *loop, ev_timer_t *timer) {
 	// int n = write(timer->fd, out, strlen(out));
 	// free(out);
 
-	printf("--------+++++++++++++:timeout++++++++\n");
+//	printf("--------+++++++++++++:timeout++++++++\n");
 	if(fd_records[timer->fd].active) {
-		printf("timeout ev_unregister\n");
+//		printf("timeout ev_unregister\n");
 		ev_unregister(loop, timer->fd);
 	}
 	close(timer->fd);
@@ -306,7 +306,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		// Dynamic service entry
 		//**************************************************************************
 		printf("path:%s-\n", path);
-		if(strncmp(path, "livechat", 8)==0) {
+		if(strncmp(path, "livechat", 8)==0 && 0) {
 			//stop the read
 			int ret;
 			ret = ev_stop(loop, sock, EV_READ);
@@ -331,7 +331,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 			return NULL;
 		}
-		if(strncmp(path, "push", 4)==0) {
+		if(strncmp(path, "push", 4)==0 && 0) {
 			printf("--------------push---------------\n");
 			printf("sock:%d, path:%s-\n", sock, path);
 			char *p = strchr(path, '=');
@@ -570,6 +570,10 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 			fd_records[sockfd].write_pos = 0;
 			
 			if(fd_records[sockfd].http_code == 304) {
+				ev_timer_t *timer = (ev_timer_t *)(fd_records[sockfd].timer_ptr);
+				if(timer != NULL) {
+					timer->cb = NULL;
+				}
 				ev_unregister(loop, sockfd);
 				close(sockfd);
 				return NULL;
@@ -725,7 +729,7 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	   		int flag = 0;
 	   		if(timer != NULL) {
 	   			timer->cb = NULL;
-	   			printf("--------(set cb = null)-------\n");
+//	   			printf("--------(set cb = null)-------\n");
 	   			flag = 1;
 	   		}
 	   		ev_unregister(loop, sockfd);
@@ -734,7 +738,7 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	  			if(/*timer == NULL*/!flag) {
 	  				add_timer(loop, 40, process_timeout, 0, 0, (void*)sockfd);
 	  			} else {
-	  				printf("-----=-=-=-=-=-=-=-=-=-==---resue\n");
+//	  				printf("-----=-=-=-=-=-=-=-=-=-==---resue\n");
 	  				add_timer(loop, 40, process_timeout, 0, 0, (void*)sockfd);
 	  			}
 	   		}
