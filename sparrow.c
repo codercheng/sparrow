@@ -270,7 +270,10 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		char *path_end = strchr(buf+4, ' ');
 		int len = path_end - buf - 4 -1;
 
-		char path[256];
+		char path[1024+1];
+		memset(path, 0, sizeof(path));
+		if(len > 1024)
+				len = 1024;
 		strncpy(path, buf+1+4, len);
 		path[len] = '\0';        //can not forget
 		
@@ -283,7 +286,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		}
 		
 		char *prefix = work_dir;
-		char filename[256];//full path
+		char filename[1024 + 1 + strlen(work_dir)];//full path
 		strncpy(filename, prefix, strlen(prefix));
 		strncpy(filename+strlen(prefix), path, strlen(path)+1);
 
@@ -320,7 +323,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		if(strncmp(path, "push", 4)==0) {
 	//		printf("--------------push---------------\n");
 	//		printf("sockfd:%d\n", sock);
-			//printf("sock:%d, path:%s-\n", sock, path);
+			printf("sock:%d, path:%s-\n", sock, path);
 			char *p = strstr(path, "message=");
 			if(p==NULL || p=='\0') {
 				return NULL;
@@ -330,10 +333,10 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			if(p2 != NULL) {
 				*p2 = '\0';
 			}
-			if(strlen(p) > 256) {
-				p[strlen(p)] = '\0';
+			if(strlen(p) > 1024) {
+				p[1024] = '\0';
 			}
-			char message[512];
+			char message[1024+64];
 			memset(message, 0, sizeof(message));
 
 
@@ -346,7 +349,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			cJSON_Delete(root);
 
 	//		printf("================================\n");
-			snprintf(message, 512, "livechat(%s)", out);
+			snprintf(message, 1024+64, "livechat(%s)", out);
 	//		printf("--%s--\n", message);
 	//		printf("================================\n");
 
