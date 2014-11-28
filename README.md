@@ -7,16 +7,16 @@
 ---------------
 #online demo
 
-  * online demo:[@blog](http://112.124.44.203:8080/)
-  `暂时停用`
+  * [@blog](http://chengshuguang.com)
+  * [@chat room](http://chengshuguang.com/ajax.html)
 
 ----------------
 ###How To Use
    * make
    * 在config/sparrow.conf中配置server。[可选]
    * ./sparrow
-   * open in browser http://127.0.0.1:6868/ [默认端口6868]
-   * http://127.0.0.1:6868/myfolder To Test Folder
+   * open in browser http://127.0.0.1:xxxx/ [端口xxxx, config/sparrow.conf中配置]
+   * http://127.0.0.1:xxxx/myfolder To Test Folder
    
 ----------------
 ###功能
