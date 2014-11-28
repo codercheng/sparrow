@@ -1,104 +1,226 @@
 <!DOCTYPE html>
-<!-- saved from url=(0050)http://webcooker.net/demos/ajax-long-polling-demo/ -->
-<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	
-	<script src="./jquery/2.0.0/jquery.min.js"></script>
-	<title>Understanding Ajax Long-Polling Requests - WebCooker</title>
-</head>
-<body>
-<div id="ret"><h2>will change??</h2></div>
-<table style="width: 100%;">
-	<tbody>
-		<tr>
-			<td width="50%">
-				<h4>Received Messages (Live Stream)</h4>
-				<ul class="items">
-								</ul>
-							</td>
-			<td width="50%">
-				<h4>Send Us Message</h4>
-				<form id="send-message">
-					<input name="message" rows="10" style="width: 100%;" placeholder="Enter message and hit Enter">
-				</form>
-			</td>
-		</tr>
-	</tbody>
-</table>
-<script>
-jQuery( function(){
-	// Form Submission
-	jQuery('#send-message').submit( function(){
-		var message = jQuery('#send-message input[name=message]').val();
-		if( jQuery.trim( message ) === '' ){
-			alert('Enter a message!');
-			return false;
-		}
-		
-		jQuery.ajax({
-url: 'http://chengshuguang.com:6868/push',
-			type: 'GET',
-			data: 'message=' + message,
-			dataType: 'jsonp',
-			//jsonp: "callback",
-            //jsonpCallback:"jsonpCallback",
-			success: function( payload ){
-				if( payload.message == 'error' ){
-					$("#ret").html("<h2>push err</h2>");
-				} else if( payload.message == 'empty-message' ){
-					alert('Enter a message!');
-				} else{
-					var text = payload.message;//jQuery('#send-message input[name=message]').val();
-					jQuery('.items').prepend( '<li id="' + 121212 + '">' + 121212 + '. ' + 
-						text + '</li>' );
-					jQuery('#send-message input[name=message]').val('');
-				}
-			},
-			error: function(){
-				//$("#ret").html("<h2>push err</h2>");
-				jQuery('#send-message input[name=message]').val('');
-			}
-		});
-		return false;
-	});
+<html>
+<head>
+   <title>Chat Room | Coder.Cheng</title>
+   <meta  charset="UTF-8">
+   <link href="http://libs.baidu.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+   <script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+   <script src="http://libs.baidu.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 
-	// Start Long-polling for messages
-	function messages_longpolling( timestamp, lastId ){
-		var t;
-
-		if( typeof lastId == 'undefined' ){
-			lastId = 0;
-		}
-				
-		jQuery.ajax({
-			url: 'http://chengshuguang.com:6868/livechat',
-			type: 'GET',
-			data: 'timestamp=' + timestamp + '&lastId=' + lastId,
-			dataType: "jsonp",
-			jsonp: "callback",
-            jsonpCallback:"livechat",
-			//timeout: 40000,
-			success: function(data){
-				$("#ret").html("<h1>"+data.message+"</h1>");
-				var text = data.message;
-					jQuery('.items').prepend( '<li>' + 
-						text + '</li>' );
-					jQuery('#send-message input[name=message]').val('');
-				t=setTimeout( function(){
-					messages_longpolling('231232423');
-				}, 500 );
-				
-			},
-			error: function(){
-				$("#ret").html("livechat err>>"+Math.random());
-				t=setTimeout( function(){
-					messages_longpolling( '123435252');
-				}, 500 );
-				jQuery('#send-message input[name=message]').val('');
-			}
-		});
+   <style>
+   body {
+      text-align: center;
+      font-family: Georgia
+      
+   }
+   a {text-decoration:none; }
+   a:focus {
+	    outline:none;
+	    -moz-outline:none;
+	 }
+	p {
+		color: grey;
 	}
-	messages_longpolling( '1414596263' );
-});
-</script>
+	hr {
+		border:0;background-color:#FF4040;height:4px;
+	}
 
-</body></html>
+	#playlist {
+		border:1px ridge red; 
+		/*border-radius: 10px;*/
+		padding: 5px 5px 0px px;
+		/*width: 296px;*/
+		margin-left: auto;
+		margin-right: auto;
+		height: 300px;
+		overflow: auto;
+	}
+	#playlist a {
+		display: block;
+		/*cursor: pointer;*/
+		/*width: 150px;*/
+		max-width: 150px;
+		padding: 2px 10px;
+		border-radius: 10px;
+		overflow: auto;
+		margin-top: 2px;
+		margin-left: 5px;
+		margin-bottom: 2px;
+		float:left;
+		border:1px ridge; 
+		background: grey;
+		color:white;
+		word-break:break-all;
+	}
+	#playlist a.playing { background: #FF3030;}
+   ::selection{color:#fff; background:#FF7256;}
+   ::-moz-selection{color:#fff;background:#FF7256;}
+   ::-webkit-selection{color:#fff;background:#FF7256;}
+   </style>
+</head>
+
+
+<body>
+
+<div class="container-fluid">
+   <div class="row-fluid">
+      <div class="span8">
+         <a href=" index.html" style="text-decoration:none; ">
+             <button class="btn btn-danger btn-block btn-large" type="button">Coder.Cheng</button>
+         </a>
+
+         <ul class="nav nav-tabs">
+            <li >
+               <a href="home.html">HOME</a>
+            </li>
+            <li >
+               <a href="project.html">PROJECT</a>
+            </li>
+            <li class="disabled">
+               <a href="#">BLOG</a>
+            </li>
+            <li>
+               <a href="about.html">ABOUT</a>
+            </li>
+            <li class="active">
+               <a href="ajax.html">Chat Room</a>
+            </li>
+            <li class="dropdown pull-right">
+               <a class="dropdown-toggle" data-toggle="dropdown" href="#">MORE>></a>
+               <ul class="dropdown-menu">
+                  <li>
+                     <a href="https://github.com/codercheng/" target="github">GITHUB</a>
+                  </li>
+                  <li>
+                     <a href="http://weibo.com/shuguangcheng" target="weibo">WEIBO</a>
+                  </li>
+                  <li class="divider">
+                  </li>
+                  <li>
+                     <a href="index.html">START PAGE</a>
+                  </li>
+               </ul>
+            </li>
+         </ul>
+
+         <br/>
+         <hr/>
+
+      </div>
+   </div>
+
+   			
+
+			
+
+			<form id="send-message">
+			   <div class="input-group">
+			       <input name="message" type="text" class="form-control" placeholder="Your message here">
+			       <span class="input-group-btn">
+			          <input class="btn btn-danger btn-large" type="submit" value="Send">
+			       </span>
+			    </div>
+			 </form>
+			 <br/>
+			<h4>Received Messages</h4>
+			<ul class="items"></ul>
+					
+			<div id="playlist"></div>
+			
+
+			<script>
+			jQuery( function(){
+				// Form Submission
+				jQuery('#send-message').submit( function(){
+					var message = jQuery('#send-message input[name=message]').val();
+					if( jQuery.trim( message ) === '' ){
+						alert('Enter a message!');
+						return false;
+					}
+					
+					jQuery.ajax({
+						url: 'http://chengshuguang.com:6868/push',
+						type: 'GET',
+						data: 'message=' + message,
+						dataType: 'jsonp',
+						//jsonp: "callback",
+			            //jsonpCallback:"jsonpCallback",
+						success: function( payload ){
+							if( payload.message == 'error' ){
+								$("#ret").html("<h2>push err</h2>");
+							} else if( payload.message == 'empty-message' ){
+								alert('Enter a message!');
+							} else{
+								var text = payload.message;//jQuery('#send-message input[name=message]').val();
+								jQuery('.items').prepend( '<p> '+ 
+									text + '</p>' );
+								jQuery('#send-message input[name=message]').val('');
+							}
+						},
+						error: function(){
+							//$("#ret").html("<h2>push err</h2>");
+							jQuery('#send-message input[name=message]').val('');
+						}
+					});
+					return false;
+				});
+
+				// Start Long-polling for messages
+				function messages_longpolling( timestamp, lastId ){
+					var t;
+
+					if( typeof lastId == 'undefined' ){
+						lastId = 0;
+					}
+							
+					jQuery.ajax({
+						url: 'http://chengshuguang.com:6868/livechat',
+						type: 'GET',
+						data: 'timestamp=' + timestamp + '&lastId=' + lastId,
+						dataType: "jsonp",
+						jsonp: "callback",
+			            jsonpCallback:"livechat",
+						//timeout: 40000,
+						success: function(data){
+							//$("#ret").html("<h1>"+data.message+"</h1>");
+							var $b = $('#playlist');
+
+							var text = data.message;
+								$('<a></a>').text(text).addClass('playing').prependTo($b).next().removeClass('playing');
+								// jQuery('.items').prepend( '<p>' + 
+								// 	text + '</p>' );
+								jQuery('#send-message input[name=message]').val('');
+							t=setTimeout( function(){
+								messages_longpolling('231232423');
+							}, 500 );
+							
+						},
+						error: function(){
+							$("#ret").html("livechat err>>"+Math.random());
+							t=setTimeout( function(){
+								messages_longpolling( '123435252');
+							}, 500 );
+							jQuery('#send-message input[name=message]').val('');
+						}
+					});
+				}
+				messages_longpolling( '1414596263' );
+			});
+			</script>
+
+
+   <br/>
+   <hr/>
+  
+   <div style="height:30px; margin-top:10px;">
+      <p style="color: grey;">Powered by
+         <a style="color: grey; " href="https://github.com/codercheng/sparrow" target="github_sparrow">
+         Sparrow V0.1
+         </a>
+      </p>
+   </div>
+</div>
+
+
+</body>
+</html>
