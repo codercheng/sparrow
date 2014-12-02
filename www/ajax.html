@@ -130,7 +130,7 @@
 
 			<script>
 			jQuery( function(){
-				// Form Submission
+				
 				jQuery('#send-message').submit( function(){
 					var message = jQuery('#send-message input[name=message]').val();
 					if( jQuery.trim( message ) === '' ){
@@ -139,34 +139,29 @@
 					}
 					
 					jQuery.ajax({
-						url: 'http://chengshuguang.com:6868/push',
+						url: 'http://127.0.0.1:6868/push',
 						type: 'GET',
 						data: 'message=' + message,
 						dataType: 'jsonp',
-						//jsonp: "callback",
-			            //jsonpCallback:"jsonpCallback",
+						jsonp: "callback",
+			            jsonpCallback:"livechat",
 						success: function( payload ){
-							if( payload.message == 'error' ){
-								$("#ret").html("<h2>push err</h2>");
-							} else if( payload.message == 'empty-message' ){
+							if( payload.status == 'fail' ){
+								alert("failed!");
+							} else if( payload.status == 'empty-message' ){
 								alert('Enter a message!');
 							} else{
-								var text = payload.message;//jQuery('#send-message input[name=message]').val();
-								jQuery('.items').prepend( '<p> '+ 
-									text + '</p>' );
 								jQuery('#send-message input[name=message]').val('');
 							}
 						},
 						error: function(){
-							//$("#ret").html("<h2>push err</h2>");
-							jQuery('#send-message input[name=message]').val('');
+							alert("undefined err!");
 						}
 					});
 					return false;
 				});
 
-				// Start Long-polling for messages
-				function messages_longpolling( timestamp, lastId ){
+				function messages_longpolling(lastId ){
 					var t;
 
 					if( typeof lastId == 'undefined' ){
@@ -174,37 +169,33 @@
 					}
 							
 					jQuery.ajax({
-						url: 'http://chengshuguang.com:6868/livechat',
+						url: 'http://127.0.0.1:6868/livechat',
 						type: 'GET',
-						data: 'timestamp=' + timestamp + '&lastId=' + lastId,
+						data: 'lastId=' + lastId,
 						dataType: "jsonp",
 						jsonp: "callback",
 			            jsonpCallback:"livechat",
-						//timeout: 40000,
-						success: function(data){
-							//$("#ret").html("<h1>"+data.message+"</h1>");
-							var $b = $('#playlist');
-
-							var text = data.message;
-								$('<a></a>').text(text).addClass('playing').prependTo($b).next().removeClass('playing');
-								// jQuery('.items').prepend( '<p>' + 
-								// 	text + '</p>' );
-								jQuery('#send-message input[name=message]').val('');
-							t=setTimeout( function(){
-								messages_longpolling('231232423');
-							}, 500 );
+						success: function(message){
 							
+							$.each(message, function(idx, obj) {
+								var $b = $('#playlist');
+								var text = obj.body;
+								$('<a></a>').text(text).addClass('playing').prependTo($b).next().removeClass('playing');
+								lastId = obj.id;
+							});
+							t=setTimeout( function(){
+									messages_longpolling(lastId);
+								}, 1000 );
 						},
 						error: function(){
-							$("#ret").html("livechat err>>"+Math.random());
 							t=setTimeout( function(){
-								messages_longpolling( '123435252');
-							}, 500 );
+								messages_longpolling(lastId);
+							}, 3000 );
 							jQuery('#send-message input[name=message]').val('');
 						}
 					});
 				}
-				messages_longpolling( '1414596263' );
+				messages_longpolling();
 			});
 			</script>
 
