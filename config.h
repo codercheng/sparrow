@@ -2,7 +2,6 @@
 #define _CONFIG_H
 
 #ifdef __cplusplus
-
 extern "C" 
 {
 #endif

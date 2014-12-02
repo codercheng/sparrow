@@ -58,7 +58,7 @@ void get_parent_path(char *path, char *parent) {
 	parent[p - parent + 1] = '\0';
 }
 
-int block_read(char *filename, char *buf, int max_size) {
+int block_read(const char *filename, char *buf, int max_size) {
 	int n = 0;
 	int fd = open(filename, O_RDONLY);
 	if(fd == -1) {

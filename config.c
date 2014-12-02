@@ -35,7 +35,7 @@ char * trim_left(char *str) {
 	while(*p == ' ' && *p != '\0') {
 		++p;
 	}
-	return memmove(str, p, strlen(p)+1);
+	return memmove(str, (const void *)p, strlen(p)+1);
 }
 
 /**

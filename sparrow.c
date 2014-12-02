@@ -30,6 +30,9 @@
 #include "min_heap.h"
 #include "cJSON.h"
 
+#include "conn_pool.h"
+#include "mysql_encap.h"
+
 char *work_dir;
 
 int listen_sock;
@@ -37,6 +40,9 @@ ev_loop_t * listen_loop = NULL;
 
 char dir_first_part[1024];
 char dir_second_part[512];
+
+//db连接池
+ConnPool* conn_pool;
 
 unsigned long long int round_robin_num = 0;
 
@@ -84,6 +90,8 @@ int main()
 		ev_clear(listen_sock);
 		return -1;
 	}
+	
+	conn_pool = ConnPool::GetInstance();
 
 	if(conf.log_enable) {
 		log_info("sparrow started successfully!\n");
@@ -104,9 +112,6 @@ void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
 	time_t t;
 	t = time(NULL);
 	printf("11111111------hello:%ld, i am %d\n", t, timer->fd);
-	// char test[] = "{ \"firstName\":\"Bill\" , \"lastName\":\"Gates\" }";
-	// int n = write(timer->fd, test, sizeof(test));
-	// printf("----------n:%d\n", n);
 	if(fd_records[timer->fd].active) {
 		printf("timeout ev_unregister\n");
 		ev_unregister(loop, timer->fd);
@@ -254,19 +259,6 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			close(sock);
 			return NULL;
 		}
-		////////////////////////////////////////////////////////////
-		///               http parse(tmp)
-		////////////////////////////////////////////////////////////
-		// int index;
-		// for(index=0; index<strlen(buf); index++) {
-		// 	buf[index] = tolower(buf[index]);
-		// }
-		// if(strstr(buf, "keep-alive")) {
-		// 	fd_records[sock].keep_alive = 1;
-		// 	printf("keep_alive\n");
-		// }
-
-		////////////////////////////////////////////////////////////
 		char *path_end = strchr(buf+4, ' ');
 		int len = path_end - buf - 4 -1;
 
@@ -294,26 +286,48 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		// Dynamic service entry
 		//**************************************************************************
 		//printf("path:%s-\n", path);
+		
+		//stop the read
+		int s_ret;
+		s_ret = ev_stop(loop, sock, EV_READ);
+		if(s_ret == -1) {
+			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+			if(timer != NULL) {
+				timer->cb = NULL;
+			}
+			ev_unregister(loop, sock);
+			close(sock);
+			return NULL;
+		}
+
 		if(strncmp(path, "livechat", 8)==0) {
-			//stop the read
+			char sql[1024];
+			memset(sql, 0, sizeof(sql));
+			long long int last_mid = 0;
+
+			MysqlEncap *sql_conn = conn_pool->GetOneConn();
+			snprintf(sql, 1024, "select * from chatmessage.message where mid > %ld limit 10;", last_mid);
 			int ret;
-			ret = ev_stop(loop, sock, EV_READ);
-			if(ret == -1) {
+			ret = sql_conn->ExecuteQuery(sql);
+			if(!ret) {
+				fprintf(stderr, "ExecuteQuery error when livechat pull come\n!");
+				ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+				if(timer != NULL) {
+					timer->cb = NULL;
+				}
 				ev_unregister(loop, sock);
 				close(sock);
 				return NULL;
 			}
+			conn_pool->ReleaseOneConn(sql_conn);
+
+			
 
 
-//			printf("-------------live-chat-----------\n");
-//			printf("sockfd:%d\n", sock);
-			//printf("sock:%d, path:%s-\n", sock, path);
-			//add_timer(loop, 40, process_timeout, 0, (void*)sock);
 			ev_timer_t *timer= (ev_timer_t *)fd_records[sock].timer_ptr;
 			if(timer == NULL) {
   				add_timer(loop, 40, process_timeout2, 0, 1, (void*)sock);
   			} else {
-  //				printf("here---\n");
   				timer->cb = NULL;
   				add_timer(loop, 40, process_timeout2, 0, 1, (void*)sock);
   			}
@@ -339,48 +353,75 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			char message[1024+64];
 			memset(message, 0, sizeof(message));
 
-
+			int ret = 1;
+			//insert into db
+			MysqlEncap *sql_conn = conn_pool->GetOneConn();
+			if(sql_conn == NULL) {
+				ret = 0;
+			}
+			time_t t;
+			t = time(NULL);
+			if(ret) {
+				snprintf(message, 1024+64, "INSERT INTO chatmessage.message VALUES(NULL, '%ld', '%s');",\
+					t, p);
+				ret = sql_conn->Execute(message);
+				if(ret) {
+					conn_pool->ReleaseOneConn(sql_conn);
+				}
+			}
 			cJSON *root;
 			char *out;
 
+			if(ret) {
+				memset(message, 0, sizeof(message));
+
+				root = cJSON_CreateObject();
+				cJSON_AddStringToObject(root, "message", p);
+				out = cJSON_Print(root);
+				cJSON_Delete(root);
+
+				snprintf(message, 1024+64, "livechat(%s)", out);
+		
+				int i;
+				ev_timer_t *tmp=NULL;
+				int buf_len = 0;
+				for(i=1; i<=loop->heap_size; i++) {
+					tmp = (ev_timer_t *)(loop->heap[i]);
+					if(tmp->cb != NULL && tmp->groupid == 1 && fd_records[tmp->fd].active) {
+						buf_len = sprintf(fd_records[tmp->fd].buf, "%s", message);
+						fd_records[tmp->fd].buf[buf_len] = '\0';
+						fd_records[tmp->fd].http_code = 2048;//push
+						ev_register(loop, tmp->fd, EV_WRITE, write_http_header);
+					}
+				}
+				free(out);
+			}
+
+			memset(message, 0, sizeof(message));
 			root = cJSON_CreateObject();
-			cJSON_AddStringToObject(root, "message", p);
+			if(ret)
+				cJSON_AddStringToObject(root, "status", "success");
+			else
+				cJSON_AddStringToObject(root, "status", "fail");
+
 			out = cJSON_Print(root);
 			cJSON_Delete(root);
-
-	//		printf("================================\n");
 			snprintf(message, 1024+64, "livechat(%s)", out);
-	//		printf("--%s--\n", message);
-	//		printf("================================\n");
-
-			int i;
-			ev_timer_t *tmp=NULL;
-			int buf_len = 0;
-			for(i=1; i<=loop->heap_size; i++) {
-				tmp = (ev_timer_t *)(loop->heap[i]);
-				if(tmp->cb != NULL && tmp->groupid == 1 && fd_records[tmp->fd].active) {
-					buf_len = sprintf(fd_records[tmp->fd].buf, "%s", message);
-					fd_records[tmp->fd].buf[buf_len] = '\0';
-					fd_records[tmp->fd].http_code = 2048;//push
-	//				printf("here when push...\n");
-					ev_register(loop, tmp->fd, EV_WRITE, write_http_header);
-				}
-			}
 			
-			//////////////////////
+
 			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
 			if(timer != NULL) {
 				timer->cb = NULL;
-	//			printf("set cb = null\n");
 			}
-			//int n = write(sock, out, strlen(out));
-			free(out);
-			//n("----------printf:%d\n", n);
+			int buf_len = 0;
 			if(fd_records[sock].active) {
-	//			printf("in push ev_unregister\n");
-				ev_unregister(loop, sock);
+				
+				buf_len = sprintf(fd_records[sock].buf, "%s", message);
+				fd_records[sock].buf[buf_len] = '\0';
+				fd_records[sock].http_code = 2048;//push
+				ev_register(loop, sock, EV_WRITE, write_http_header);
 			}
-			close(sock);
+			free(out);
 			return NULL;
 		}
 		//**************************************************************************

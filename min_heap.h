@@ -1,6 +1,13 @@
 #ifndef _MIN_HEAP_H
 #define _MIN_HEAP_H
 
+
+#ifdef __cplusplus
+extern "C" 
+{
+#endif
+
+
 #include <time.h>
 #include <stdint.h>
 #include "ev_loop.h"
@@ -26,5 +33,9 @@ extern void add_timer(ev_loop_t *loop, double timeout, cb_timer_t cb, uint8_t re
 extern struct timespec tick(ev_loop_t *loop);
 extern void* check_timer(ev_loop_t *loop, int tfd, EV_TYPE events);
 //ev_timer_t *freelist;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
