@@ -303,10 +303,32 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		if(strncmp(path, "livechat", 8)==0) {
 			char sql[1024];
 			memset(sql, 0, sizeof(sql));
-			long long int last_mid = 0;
+
+			char *p = strstr(path, "lastId=");
+			if(p==NULL || p=='\0') {
+				ev_unregister(loop, sock);
+				close(sock);
+				return NULL;
+			}
+			p+=7;
+			char *p2 = p;
+			while(isdigit(*p2)) {
+				p2++;
+			}
+			if(p2 != NULL) {
+				*p2 = '\0';
+			}
+			if(strlen(p) > 1024) {
+				p[1024] = '\0';
+			}
+
+
+			long long int last_mid = atoll(p);
+
+			printf("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&:last_mid:%lld\n", last_mid);
 
 			MysqlEncap *sql_conn = conn_pool->GetOneConn();
-			snprintf(sql, 1024, "select * from chatmessage.message where mid > %ld limit 10;", last_mid);
+			snprintf(sql, 1024, "select * from chatmessage.message where mid > %lld limit 5;", last_mid);
 			int ret;
 			ret = sql_conn->ExecuteQuery(sql);
 			if(!ret) {
@@ -321,7 +343,41 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			}
 			conn_pool->ReleaseOneConn(sql_conn);
 
-			
+			int count = sql_conn->GetQueryResultCount();
+
+
+			if(count != 0) {
+				cJSON *root, *obj;
+				char *out;
+				root = cJSON_CreateArray();
+				while(sql_conn->FetchRow()) {
+					obj = cJSON_CreateObject();
+					cJSON_AddItemToArray(root,obj);
+					cJSON_AddStringToObject(obj, "id", sql_conn->GetField("mid"));
+					cJSON_AddStringToObject(obj, "time", sql_conn->GetField("mtime"));
+					cJSON_AddStringToObject(obj, "body", sql_conn->GetField("mbody"));
+					//cJSON_Delete(obj);
+				}
+				out = cJSON_Print(root);
+				//cJSON_Delete(obj);
+				cJSON_Delete(root);
+
+
+				ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+				if(timer != NULL) {
+					timer->cb = NULL;
+				}
+				int buf_len = 0;
+				if(fd_records[sock].active) {
+					
+					buf_len = sprintf(fd_records[sock].buf, "livechat(%s)", out);
+					fd_records[sock].buf[buf_len] = '\0';
+					fd_records[sock].http_code = 2048;//push
+					ev_register(loop, sock, EV_WRITE, write_http_header);
+				}
+				free(out);
+				return NULL;
+			}
 
 
 			ev_timer_t *timer= (ev_timer_t *)fd_records[sock].timer_ptr;
@@ -340,6 +396,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			printf("sock:%d, path:%s-\n", sock, path);
 			char *p = strstr(path, "message=");
 			if(p==NULL || p=='\0') {
+				ev_unregister(loop, sock);
+				close(sock);
 				return NULL;
 			}
 			p+=8;
@@ -376,7 +434,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				memset(message, 0, sizeof(message));
 
 				root = cJSON_CreateObject();
-				cJSON_AddStringToObject(root, "message", p);
+				cJSON_AddStringToObject(root, "body", p);
 				out = cJSON_Print(root);
 				cJSON_Delete(root);
 
