@@ -67,6 +67,7 @@ ev_loop_t *ev_create_loop(int maxevent, int et) {
 			fd_records[i].http_code = 200;
 			fd_records[i].keep_alive = 0;
 			fd_records[i].timer_ptr = NULL;
+			fd_records[i].transferring = 0;
 		}
 		printf("init\n");
 	}
@@ -122,6 +123,8 @@ int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb) {
 				close(fd);
 				return -1;
 			}
+			//mark data is transferring
+			fd_records[fd].transferring = 1;
 		} else if(events == EV_READ) {/*add*/
 			if(-1 == epoll_ctl(loop->epfd, EPOLL_CTL_ADD, fd, &ev)) {
 				fprintf(stderr, "epoll_ctl add in ev_register: %s, fd:%d, %ld\n", strerror(errno), fd, gettid());
@@ -286,6 +289,7 @@ void ev_clear(int fd) {
 	fd_records[fd].http_code = 200;	
 	fd_records[fd].keep_alive = 0;
 	fd_records[fd].timer_ptr = NULL;
+	fd_records[fd].transferring = 0;
 	memset(fd_records[fd].path, 0, sizeof(fd_records[fd].path));
 	memset(fd_records[fd].buf, 0, MAXBUFSIZE);
 }

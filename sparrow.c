@@ -120,17 +120,45 @@ void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
 }
 static 
 void process_timeout2(ev_loop_t *loop, ev_timer_t *timer) {
-//	printf("--------------------------timeout begin------------------------------\n");
-	ev_timer_t * timer2 = (ev_timer_t *)(fd_records[timer->fd].timer_ptr);
+
+	int sock = timer->fd;
+
+	cJSON *root, *obj;
+	char *out;
+	root = cJSON_CreateArray();
+	
+	obj = cJSON_CreateObject();
+	cJSON_AddItemToArray(root, obj);
+	cJSON_AddStringToObject(obj, "id", "timeout");
+	cJSON_AddStringToObject(obj, "body", "pull timeout");
+	out = cJSON_Print(root);
+	cJSON_Delete(root);
+
+
+	ev_timer_t * timer2 = (ev_timer_t *)(fd_records[sock].timer_ptr);
 	if(timer2 != NULL) {
 		timer2->cb = NULL;
-//		printf("set cb = null\n");
 	}
-	if(fd_records[timer->fd].active) {
-		printf("timeout ev_unregister\n");
-		ev_unregister(loop, timer->fd);
+	int buf_len = 0;
+	if(fd_records[sock].active) {
+		
+		buf_len = sprintf(fd_records[sock].buf, "livechat(%s)", out);
+		fd_records[sock].buf[buf_len] = '\0';
+		fd_records[sock].http_code = 2048;//push
+		ev_register(loop, sock, EV_WRITE, write_http_header);
 	}
-	close(timer->fd);
+	free(out);
+// //	printf("--------------------------timeout begin------------------------------\n");
+// 	ev_timer_t * timer2 = (ev_timer_t *)(fd_records[timer->fd].timer_ptr);
+// 	if(timer2 != NULL) {
+// 		timer2->cb = NULL;
+// //		printf("set cb = null\n");
+// 	}
+// 	if(fd_records[timer->fd].active) {
+// 		printf("timeout ev_unregister\n");
+// 		ev_unregister(loop, timer->fd);
+// 	}
+// 	close(timer->fd);
 //	printf("--------------------------timeout end--------------------------------\n");
 }
 
@@ -155,7 +183,6 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 			close(conn_fd);
 			return NULL;
 		}
-//		printf("++++++++++++++++++++++++++connections+++++++++++++++++++++\n");
 		setnonblocking(conn_fd);
 
 		if(conf.log_enable) {
@@ -236,11 +263,11 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			}
 		} else if(nread == 0) {
 			//client quit
-			printf("client quit\n");
+			//printf("client quit\n");
 			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
 			if(timer != NULL) {
 				timer->cb = NULL;
-				printf("set cb = null\n");
+			//	printf("set cb = null\n");
 			}
 			ev_unregister(loop, sock);
 			close(sock);
@@ -325,10 +352,10 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 			long long int last_mid = atoll(p);
 
-			printf("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&:last_mid:%lld\n", last_mid);
+			//printf("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&:last_mid:%lld\n", last_mid);
 
 			MysqlEncap *sql_conn = conn_pool->GetOneConn();
-			snprintf(sql, 1024, "select * from chatmessage.message where mid > %lld limit 5;", last_mid);
+			snprintf(sql, 1024, "select * from chatmessage.message where mid > %lld limit 10;", last_mid);
 			int ret;
 			ret = sql_conn->ExecuteQuery(sql);
 			if(!ret) {
@@ -354,7 +381,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 					obj = cJSON_CreateObject();
 					cJSON_AddItemToArray(root,obj);
 					cJSON_AddStringToObject(obj, "id", sql_conn->GetField("mid"));
-					cJSON_AddStringToObject(obj, "time", sql_conn->GetField("mtime"));
+					//cJSON_AddStringToObject(obj, "time", sql_conn->GetField("mtime"));
 					cJSON_AddStringToObject(obj, "body", sql_conn->GetField("mbody"));
 					//cJSON_Delete(obj);
 				}
@@ -391,9 +418,6 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			return NULL;
 		}
 		if(strncmp(path, "push", 4)==0) {
-	//		printf("--------------push---------------\n");
-	//		printf("sockfd:%d\n", sock);
-			printf("sock:%d, path:%s-\n", sock, path);
 			char *p = strstr(path, "message=");
 			if(p==NULL || p=='\0') {
 				ev_unregister(loop, sock);
@@ -419,11 +443,20 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			}
 			time_t t;
 			t = time(NULL);
+			char *new_mid = NULL;
 			if(ret) {
 				snprintf(message, 1024+64, "INSERT INTO chatmessage.message VALUES(NULL, '%ld', '%s');",\
 					t, p);
 				ret = sql_conn->Execute(message);
 				if(ret) {
+					memset(message, 0 , sizeof(message));
+					sprintf(message, "SELECT @@IDENTITY;");
+					sql_conn->ExecuteQuery(message);
+
+					if(sql_conn->FetchRow()) {
+						new_mid = sql_conn->GetField(0);
+						printf("new_message_id:%s\n", new_mid);
+					}
 					conn_pool->ReleaseOneConn(sql_conn);
 				}
 			}
@@ -433,10 +466,24 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			if(ret) {
 				memset(message, 0, sizeof(message));
 
-				root = cJSON_CreateObject();
-				cJSON_AddStringToObject(root, "body", p);
+				//root = cJSON_CreateObject();
+				//cJSON_AddStringToObject(root, "body", p);
+
+				cJSON *obj;
+			
+				root = cJSON_CreateArray();
+				
+				obj = cJSON_CreateObject();
+				cJSON_AddItemToArray(root, obj);
+				cJSON_AddStringToObject(obj, "id", new_mid);
+				//cJSON_AddNumberToObject(obj, "time", t);
+				cJSON_AddStringToObject(obj, "body", p);
+
 				out = cJSON_Print(root);
 				cJSON_Delete(root);
+				// printf("+++++++++++++++++++++++++++++++++++\n");
+				// printf("%s\n", out);
+				// printf("++++++++++++++++++++++++++++++++++++\n");
 
 				snprintf(message, 1024+64, "livechat(%s)", out);
 		
@@ -445,7 +492,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				int buf_len = 0;
 				for(i=1; i<=loop->heap_size; i++) {
 					tmp = (ev_timer_t *)(loop->heap[i]);
-					if(tmp->cb != NULL && tmp->groupid == 1 && fd_records[tmp->fd].active) {
+					if(tmp->cb != NULL && tmp->groupid == 1 && fd_records[tmp->fd].active &&!fd_records[tmp->fd].transferring) {
+						printf("push to fd:%d ...\n", tmp->fd);
 						buf_len = sprintf(fd_records[tmp->fd].buf, "%s", message);
 						fd_records[tmp->fd].buf[buf_len] = '\0';
 						fd_records[tmp->fd].http_code = 2048;//push
@@ -464,11 +512,12 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 			out = cJSON_Print(root);
 			cJSON_Delete(root);
-			snprintf(message, 1024+64, "livechat(%s)", out);
+			snprintf(message, 1024+64, "pushcall(%s)", out);
 			
 
 			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
 			if(timer != NULL) {
+				//printf("cb push-------------\n");
 				timer->cb = NULL;
 			}
 			int buf_len = 0;
@@ -677,11 +726,11 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 				ev_timer_t * timer = (ev_timer_t *)(fd_records[sockfd].timer_ptr);
 				if(timer != NULL) {
 					timer->cb = NULL;
-					printf("set cb = null\n");
+					//printf("set cb = null\n");
 				}
 				ev_unregister(loop, sockfd);
 				close(sockfd);
-				printf("==============2048===============\n");
+				//printf("==============2048 transferring END===============\n");
 				return NULL;
 			}
 

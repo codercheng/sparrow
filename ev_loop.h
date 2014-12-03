@@ -68,6 +68,7 @@ typedef struct {
 	int http_code;
 	char path[256];
 	int keep_alive;
+	int transferring;
 
 	void* timer_ptr;
 } fd_record_t;
