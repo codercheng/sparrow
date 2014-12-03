@@ -8,3 +8,7 @@ CREATE TABLE message (
 	);
 
 INSERT INTO chatmessage.message VALUES(NULL, sql, );
+
+
+create user simon IDENTIFIED by '135016';
+grant select, insert on chatmessage.message TO 'forchat'@'%';

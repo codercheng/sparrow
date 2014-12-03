@@ -144,13 +144,14 @@
 						data: 'message=' + message,
 						dataType: 'jsonp',
 						jsonp: "callback",
-			            jsonpCallback:"livechat",
+			            jsonpCallback:"pushcall",
 						success: function( payload ){
 							if( payload.status == 'fail' ){
 								alert("failed!");
 							} else if( payload.status == 'empty-message' ){
 								alert('Enter a message!');
 							} else{
+								console.log("push:"+payload.status);
 								jQuery('#send-message input[name=message]').val('');
 							}
 						},
@@ -163,7 +164,6 @@
 
 				function messages_longpolling(lastId ){
 					var t;
-
 					if( typeof lastId == 'undefined' ){
 						lastId = 0;
 					}
@@ -176,22 +176,31 @@
 						jsonp: "callback",
 			            jsonpCallback:"livechat",
 						success: function(message){
-							
 							$.each(message, function(idx, obj) {
 								var $b = $('#playlist');
 								var text = obj.body;
-								$('<a></a>').text(text).addClass('playing').prependTo($b).next().removeClass('playing');
-								lastId = obj.id;
+								if(obj.id == 'timeout') {
+									console.log("pull timeout");
+								} else {
+									console.log("pull success");
+									lastId = obj.id;
+									console.log("id:"+lastId);
+									$('<a></a>').text('[' + lastId + ']:' + text).addClass('playing').prependTo($b).next().removeClass('playing');
+									
+								}
 							});
+							
+							
 							t=setTimeout( function(){
+									console.log('<'+lastId+'>');
 									messages_longpolling(lastId);
-								}, 1000 );
+								}, 500 );
 						},
 						error: function(){
+							console.log("pull return error\n");
 							t=setTimeout( function(){
 								messages_longpolling(lastId);
-							}, 3000 );
-							jQuery('#send-message input[name=message]').val('');
+							}, 500 );
 						}
 					});
 				}
