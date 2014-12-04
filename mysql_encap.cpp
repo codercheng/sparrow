@@ -1,7 +1,3 @@
-/*
-*问题一： 怎么判断数据库其实已经断开了，查询一次这种太耗时了吧
-*        目前的做法是，在查询的时候如果抛出异常，则进行重连
-**/
 #include "mysql_encap.h"
 #include <stdio.h>
 #include <string.h>
@@ -201,7 +197,13 @@ char *MysqlEncap::GetField(int fieldnum){
 	return sql_row[fieldnum];
 }
 
-
+/*************************************************
+ * 转义字符串,避免特殊字符
+ * make sure sizeof(to) >= 2*strlen(from)+1
+ *************************************************/
+void MysqlEncap::EscapeString(char *dest, char *source) {
+	mysql_real_escape_string(&sql_conn, dest, source, strlen(source));
+}
 
 
 

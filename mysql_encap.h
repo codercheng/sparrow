@@ -31,6 +31,8 @@ public:
 	char *GetField(const char *fieldname);//根据列的名字查找当前行，得到该列的值
 	char *GetField(int filednum);//根据列的序号查找当前行，得到该列的值
 	char **FetchRow();//拿出一行结果
+
+	void EscapeString(char *to, char *from);
 	
 private:
 	bool ReConnect();
