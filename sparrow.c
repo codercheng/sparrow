@@ -436,17 +436,26 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			memset(message, 0, sizeof(message));
 
 			int ret = 1;
+
+			time_t t;
+			t = time(NULL);
+
+
 			//insert into db
 			MysqlEncap *sql_conn = conn_pool->GetOneConn();
+
+			char p_escape[1024*2+1];
+			sql_conn->EscapeString(p_escape, p);
+
+			//printf("*****StringEscape:%s\n", p_escape);
+
 			if(sql_conn == NULL) {
 				ret = 0;
 			}
-			time_t t;
-			t = time(NULL);
 			char *new_mid = NULL;
 			if(ret) {
 				snprintf(message, 1024+64, "INSERT INTO chatmessage.message VALUES(NULL, '%ld', '%s');",\
-					t, p);
+					t, p_escape);
 				ret = sql_conn->Execute(message);
 				if(ret) {
 					memset(message, 0 , sizeof(message));
@@ -493,7 +502,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				for(i=1; i<=loop->heap_size; i++) {
 					tmp = (ev_timer_t *)(loop->heap[i]);
 					if(tmp->cb != NULL && tmp->groupid == 1 && fd_records[tmp->fd].active &&!fd_records[tmp->fd].transferring) {
-						printf("push to fd:%d ...\n", tmp->fd);
+						//printf("push to fd:%d ...\n", tmp->fd);
 						buf_len = sprintf(fd_records[tmp->fd].buf, "%s", message);
 						fd_records[tmp->fd].buf[buf_len] = '\0';
 						fd_records[tmp->fd].http_code = 2048;//push
@@ -514,7 +523,9 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			cJSON_Delete(root);
 			snprintf(message, 1024+64, "pushcall(%s)", out);
 			
-
+			//printf("********************************\n");
+			//printf("%s\n", out);
+			//printf("********************************\n");
 			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
 			if(timer != NULL) {
 				//printf("cb push-------------\n");
