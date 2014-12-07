@@ -33,6 +33,12 @@
 #include "conn_pool.h"
 #include "mysql_encap.h"
 
+#include "msg_cache.h"
+
+#define MSG_CACHE_SIZE 10
+
+msg_cache_t *msg_cache = NULL;
+
 char *work_dir;
 
 int listen_sock;
@@ -92,6 +98,7 @@ int main()
 	}
 	
 	conn_pool = ConnPool::GetInstance();
+	msg_cache = msg_cache_init(MSG_CACHE_SIZE);
 
 	if(conf.log_enable) {
 		log_info("sparrow started successfully!\n");
@@ -148,18 +155,6 @@ void process_timeout2(ev_loop_t *loop, ev_timer_t *timer) {
 		ev_register(loop, sock, EV_WRITE, write_http_header);
 	}
 	free(out);
-// //	printf("--------------------------timeout begin------------------------------\n");
-// 	ev_timer_t * timer2 = (ev_timer_t *)(fd_records[timer->fd].timer_ptr);
-// 	if(timer2 != NULL) {
-// 		timer2->cb = NULL;
-// //		printf("set cb = null\n");
-// 	}
-// 	if(fd_records[timer->fd].active) {
-// 		printf("timeout ev_unregister\n");
-// 		ev_unregister(loop, timer->fd);
-// 	}
-// 	close(timer->fd);
-//	printf("--------------------------timeout end--------------------------------\n");
 }
 
 void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
@@ -328,6 +323,10 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		}
 
 		if(strncmp(path, "livechat", 8)==0) {
+			//////////////////////////////
+			//msg_cache_status(msg_cache);
+			/////////////////////////////
+
 			char sql[1024];
 			memset(sql, 0, sizeof(sql));
 
@@ -349,63 +348,108 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				p[1024] = '\0';
 			}
 
-
 			long long int last_mid = atoll(p);
 
-			//printf("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&:last_mid:%lld\n", last_mid);
+			
+			if(msg_cache->cur_size > 0 && last_mid != msg_cache->tail->mid) {
+				//printf("+++++++++++++++last mid:%lld <---> %lld\n ", last_mid, msg_cache->tail->mid);
+				if(last_mid == 0 || msg_cache->head->mid <= last_mid) {
+					cJSON *root, *obj;
+					char *out;
+					root = cJSON_CreateArray();
 
-			MysqlEncap *sql_conn = conn_pool->GetOneConn();
-			snprintf(sql, 1024, "select * from chatmessage.message where mid > %lld limit 10;", last_mid);
-			int ret;
-			ret = sql_conn->ExecuteQuery(sql);
-			if(!ret) {
-				fprintf(stderr, "ExecuteQuery error when livechat pull come\n!");
-				ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
-				if(timer != NULL) {
-					timer->cb = NULL;
-				}
-				ev_unregister(loop, sock);
-				close(sock);
-				return NULL;
-			}
-			conn_pool->ReleaseOneConn(sql_conn);
-
-			int count = sql_conn->GetQueryResultCount();
-
-
-			if(count != 0) {
-				cJSON *root, *obj;
-				char *out;
-				root = cJSON_CreateArray();
-				while(sql_conn->FetchRow()) {
-					obj = cJSON_CreateObject();
-					cJSON_AddItemToArray(root,obj);
-					cJSON_AddStringToObject(obj, "id", sql_conn->GetField("mid"));
-					//cJSON_AddStringToObject(obj, "time", sql_conn->GetField("mtime"));
-					cJSON_AddStringToObject(obj, "body", sql_conn->GetField("mbody"));
+					msg_cache_node_t *tmp = msg_cache->head;
+					char str_mid[20];
+					char str_mtime[20];
+					while(tmp != NULL) {
+						memset(str_mid, 0, sizeof(str_mid));
+						memset(str_mtime, 0, sizeof(str_mtime));
+						sprintf(str_mid, "%lld", tmp->mid);
+						sprintf(str_mtime, "%ld", tmp->mtime);
+						obj = cJSON_CreateObject();
+						cJSON_AddItemToArray(root,obj);
+						cJSON_AddStringToObject(obj, "id", str_mid);
+						cJSON_AddStringToObject(obj, "time", str_mtime);
+						cJSON_AddStringToObject(obj, "body", tmp->mbody);
+						//printf("id:%lld, time:%ld, body:%s\n", tmp->mid, tmp->mtime, tmp->mbody);
+						tmp = tmp->next;
+					}
+					out = cJSON_Print(root);
 					//cJSON_Delete(obj);
+					cJSON_Delete(root);
+					ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+					if(timer != NULL) {
+						timer->cb = NULL;
+					}
+					int buf_len = 0;
+					if(fd_records[sock].active) {
+						
+						buf_len = sprintf(fd_records[sock].buf, "livechat(%s)", out);
+						fd_records[sock].buf[buf_len] = '\0';
+						fd_records[sock].http_code = 2048;//push
+						ev_register(loop, sock, EV_WRITE, write_http_header);
+					}
+					free(out);
+					return NULL;
 				}
-				out = cJSON_Print(root);
-				//cJSON_Delete(obj);
-				cJSON_Delete(root);
+				else {
+
+					MysqlEncap *sql_conn = conn_pool->GetOneConn();
+
+					snprintf(sql, 1024, "select * from chatmessage.message where mid > %lld limit 10;", last_mid);
+					int ret;
+					ret = sql_conn->ExecuteQuery(sql);
+					if(!ret) {
+						fprintf(stderr, "ExecuteQuery error when livechat pull come\n!");
+						ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+						if(timer != NULL) {
+							timer->cb = NULL;
+						}
+						ev_unregister(loop, sock);
+						close(sock);
+						return NULL;
+					}
+					conn_pool->ReleaseOneConn(sql_conn);
+
+					int count = sql_conn->GetQueryResultCount();
 
 
-				ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
-				if(timer != NULL) {
-					timer->cb = NULL;
+					if(count != 0) {
+						cJSON *root, *obj;
+						char *out;
+						root = cJSON_CreateArray();
+						while(sql_conn->FetchRow()) {
+							obj = cJSON_CreateObject();
+							cJSON_AddItemToArray(root,obj);
+							cJSON_AddStringToObject(obj, "id", sql_conn->GetField("mid"));
+							cJSON_AddStringToObject(obj, "time", sql_conn->GetField("mtime"));
+							cJSON_AddStringToObject(obj, "body", sql_conn->GetField("mbody"));
+							//cJSON_Delete(obj);
+						}
+						out = cJSON_Print(root);
+						//cJSON_Delete(obj);
+						cJSON_Delete(root);
+
+
+						ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+						if(timer != NULL) {
+							timer->cb = NULL;
+						}
+						int buf_len = 0;
+						if(fd_records[sock].active) {
+							
+							buf_len = sprintf(fd_records[sock].buf, "livechat(%s)", out);
+							fd_records[sock].buf[buf_len] = '\0';
+							fd_records[sock].http_code = 2048;//push
+							ev_register(loop, sock, EV_WRITE, write_http_header);
+						}
+						free(out);
+						return NULL;
+					}
 				}
-				int buf_len = 0;
-				if(fd_records[sock].active) {
-					
-					buf_len = sprintf(fd_records[sock].buf, "livechat(%s)", out);
-					fd_records[sock].buf[buf_len] = '\0';
-					fd_records[sock].http_code = 2048;//push
-					ev_register(loop, sock, EV_WRITE, write_http_header);
-				}
-				free(out);
-				return NULL;
+
 			}
-
+			
 
 			ev_timer_t *timer= (ev_timer_t *)fd_records[sock].timer_ptr;
 			if(timer == NULL) {
@@ -467,14 +511,21 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 						printf("new_message_id:%s\n", new_mid);
 					}
 					conn_pool->ReleaseOneConn(sql_conn);
+
+					////////////////////////////////
+					//insert into msg_chache //
+					////////////////////////////////
+					msg_cache_add(msg_cache, atoi(new_mid), t, p);
 				}
 			}
 			cJSON *root;
 			char *out;
 
 			if(ret) {
+				char time_now[20];
+				memset(time_now, 0, sizeof(time_now));
 				memset(message, 0, sizeof(message));
-
+				sprintf(time_now, "%ld", t);
 				//root = cJSON_CreateObject();
 				//cJSON_AddStringToObject(root, "body", p);
 
@@ -485,7 +536,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				obj = cJSON_CreateObject();
 				cJSON_AddItemToArray(root, obj);
 				cJSON_AddStringToObject(obj, "id", new_mid);
-				//cJSON_AddNumberToObject(obj, "time", t);
+				cJSON_AddStringToObject(obj, "time", time_now);
 				cJSON_AddStringToObject(obj, "body", p);
 
 				out = cJSON_Print(root);
