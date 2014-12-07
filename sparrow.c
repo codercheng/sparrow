@@ -362,15 +362,17 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 					char str_mid[20];
 					char str_mtime[20];
 					while(tmp != NULL) {
-						memset(str_mid, 0, sizeof(str_mid));
-						memset(str_mtime, 0, sizeof(str_mtime));
-						sprintf(str_mid, "%lld", tmp->mid);
-						sprintf(str_mtime, "%ld", tmp->mtime);
-						obj = cJSON_CreateObject();
-						cJSON_AddItemToArray(root,obj);
-						cJSON_AddStringToObject(obj, "id", str_mid);
-						cJSON_AddStringToObject(obj, "time", str_mtime);
-						cJSON_AddStringToObject(obj, "body", tmp->mbody);
+						if(tmp->mid > last_mid) {
+							memset(str_mid, 0, sizeof(str_mid));
+							memset(str_mtime, 0, sizeof(str_mtime));
+							sprintf(str_mid, "%lld", tmp->mid);
+							sprintf(str_mtime, "%ld", tmp->mtime);
+							obj = cJSON_CreateObject();
+							cJSON_AddItemToArray(root,obj);
+							cJSON_AddStringToObject(obj, "id", str_mid);
+							cJSON_AddStringToObject(obj, "time", str_mtime);
+							cJSON_AddStringToObject(obj, "body", tmp->mbody);
+						}
 						//printf("id:%lld, time:%ld, body:%s\n", tmp->mid, tmp->mtime, tmp->mbody);
 						tmp = tmp->next;
 					}
