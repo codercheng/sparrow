@@ -148,18 +148,6 @@ void process_timeout2(ev_loop_t *loop, ev_timer_t *timer) {
 		ev_register(loop, sock, EV_WRITE, write_http_header);
 	}
 	free(out);
-// //	printf("--------------------------timeout begin------------------------------\n");
-// 	ev_timer_t * timer2 = (ev_timer_t *)(fd_records[timer->fd].timer_ptr);
-// 	if(timer2 != NULL) {
-// 		timer2->cb = NULL;
-// //		printf("set cb = null\n");
-// 	}
-// 	if(fd_records[timer->fd].active) {
-// 		printf("timeout ev_unregister\n");
-// 		ev_unregister(loop, timer->fd);
-// 	}
-// 	close(timer->fd);
-//	printf("--------------------------timeout end--------------------------------\n");
 }
 
 void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
@@ -355,7 +343,12 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			//printf("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&:last_mid:%lld\n", last_mid);
 
 			MysqlEncap *sql_conn = conn_pool->GetOneConn();
-			snprintf(sql, 1024, "select * from chatmessage.message where mid > %lld limit 10;", last_mid);
+			if(last_mid == 0) {
+				snprintf(sql, 1024, "select * from chatmessage.message where mid > (select max(mid) from chatmessage.message)-10;");
+			} else {
+				snprintf(sql, 1024, "select * from chatmessage.message where mid > %lld limit 10;", last_mid);
+			}
+			
 			int ret;
 			ret = sql_conn->ExecuteQuery(sql);
 			if(!ret) {
@@ -381,7 +374,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 					obj = cJSON_CreateObject();
 					cJSON_AddItemToArray(root,obj);
 					cJSON_AddStringToObject(obj, "id", sql_conn->GetField("mid"));
-					//cJSON_AddStringToObject(obj, "time", sql_conn->GetField("mtime"));
+					cJSON_AddStringToObject(obj, "time", sql_conn->GetField("mtime"));
 					cJSON_AddStringToObject(obj, "body", sql_conn->GetField("mbody"));
 					//cJSON_Delete(obj);
 				}
@@ -475,8 +468,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			if(ret) {
 				memset(message, 0, sizeof(message));
 
-				//root = cJSON_CreateObject();
-				//cJSON_AddStringToObject(root, "body", p);
+				char time_now[20];
+				memset(time_now, 0, sizeof(time_now));
 
 				cJSON *obj;
 			
@@ -485,14 +478,11 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				obj = cJSON_CreateObject();
 				cJSON_AddItemToArray(root, obj);
 				cJSON_AddStringToObject(obj, "id", new_mid);
-				//cJSON_AddNumberToObject(obj, "time", t);
+				cJSON_AddStringToObject(obj, "time", time_now);
 				cJSON_AddStringToObject(obj, "body", p);
 
 				out = cJSON_Print(root);
 				cJSON_Delete(root);
-				// printf("+++++++++++++++++++++++++++++++++++\n");
-				// printf("%s\n", out);
-				// printf("++++++++++++++++++++++++++++++++++++\n");
 
 				snprintf(message, 1024+64, "livechat(%s)", out);
 		
