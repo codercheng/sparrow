@@ -137,9 +137,9 @@
 						alert('Enter a message!');
 						return false;
 					}
-					
+				    message = encodeURIComponent(message)	
 					jQuery.ajax({
-						url: 'http://127.0.0.1:6868/push',
+						url: 'http://chengshuguang.com:6868/push',
 						type: 'GET',
 						data: 'message=' + message,
 						dataType: 'jsonp',
@@ -169,7 +169,7 @@
 					}
 							
 					jQuery.ajax({
-						url: 'http://127.0.0.1:6868/livechat',
+						url: 'http://chengshuguang.com:6868/livechat',
 						type: 'GET',
 						data: 'lastId=' + lastId,
 						dataType: "jsonp",
