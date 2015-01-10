@@ -137,13 +137,11 @@
         $('input[class="status"]').parent('label').each(function(index, element){
             if($(this).hasClass('active')) {
               status = index;
-              break;
             }
         });
         $('input[class="time_interval"]').parent('label').each(function(index, element){
             if($(this).hasClass('active')) {
              time_interval = index;
-             break;
             }
         });
         console.log(':::'+status+'--'+time_interval);
