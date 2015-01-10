@@ -437,8 +437,10 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			//insert into db
 			MysqlEncap *sql_conn = conn_pool->GetOneConn();
 
+
 			char p_escape[1024*2+1];
-			sql_conn->EscapeString(p_escape, p);
+			if(sql_conn!=NULL)
+				sql_conn->EscapeString(p_escape, p);
 
 			//printf("*****StringEscape:%s\n", p_escape);
 
@@ -532,6 +534,74 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			free(out);
 			return NULL;
 		}
+		if(strncmp(path, "create_new_task", 15)==0) {
+			char *p = strstr(path, "message=");
+			if(p==NULL || p=='\0') {
+				ev_unregister(loop, sock);
+				close(sock);
+				return NULL;
+			}
+			p+=8;
+			char *p2 = strchr(p, '&');
+			if(p2 != NULL) {
+				*p2 = '\0';
+			}
+			if(strlen(p) > 1024) {
+				p[1024] = '\0';
+			}
+			char message[1024+64];
+			memset(message, 0, sizeof(message));
+
+			int ret = 1;
+
+			time_t t;
+			t = time(NULL);
+			//insert into db
+			MysqlEncap *sql_conn = conn_pool->GetOneConn();
+
+			char p_escape[1024*2+1];
+			if(sql_conn!=NULL)
+				sql_conn->EscapeString(p_escape, p);
+
+			if(sql_conn == NULL) {
+				ret = 0;
+			}
+
+			if(ret) {
+				snprintf(message, 1024+64, "INSERT INTO chatmessage.task VALUES(NULL, 'simon', '%ld', NULL, NULL, 1, '%s');",\
+					t, p_escape);
+				ret = sql_conn->Execute(message);
+				conn_pool->ReleaseOneConn(sql_conn);
+			}
+			cJSON *root;
+			char *out;
+
+			memset(message, 0, sizeof(message));
+			root = cJSON_CreateObject();
+			if(ret)
+				cJSON_AddStringToObject(root, "status", "success");
+			else
+				cJSON_AddStringToObject(root, "status", "fail");
+
+			out = cJSON_Print(root);
+			cJSON_Delete(root);
+			snprintf(message, 1024+64, "create_task_cb(%s)", out);
+			
+			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+			if(timer != NULL) {
+				timer->cb = NULL;
+			}
+			int buf_len = 0;
+			if(fd_records[sock].active) {
+				
+				buf_len = sprintf(fd_records[sock].buf, "%s", message);
+				fd_records[sock].buf[buf_len] = '\0';
+				fd_records[sock].http_code = 2048;//push
+				ev_register(loop, sock, EV_WRITE, write_http_header);
+			}
+			free(out);
+			return NULL;
+		}
 		if(strncmp(path, "task_query", 10)==0) {
 			char sql[1024];
 			memset(sql, 0, sizeof(sql));
@@ -552,7 +622,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				return NULL;
 			}
 			p2+=14;
-			int time_interval = p[2]-'0';
+			int time_interval = p[0]-'0';
 
 			printf("status:%d, time_interval:%d\n", status, time_interval);
 
@@ -571,9 +641,9 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			// char str_time[16];
 			// sprintf(str_time, "%ld", t);
 			if(status != 0) {
-				snprintf(sql, 1024, "select task_create_time, task_status, task_content from chatmessage.task where task_status = %d and task_create_time >= '%ld';", status, t);
+				snprintf(sql, 1024, "select task_id, task_create_time, task_status, task_content from chatmessage.task where task_status = %d and task_create_time >= '%ld';", status, t);
 			} else {
-				snprintf(sql, 1024, "select task_create_time, task_status, task_content from chatmessage.task where task_create_time >= '%ld';", t);
+				snprintf(sql, 1024, "select task_id, task_create_time, task_status, task_content from chatmessage.task where task_status != 3 and task_create_time >= '%ld';", t);
 			}
 			MysqlEncap *sql_conn = conn_pool->GetOneConn();
 			int ret;
@@ -600,6 +670,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				while(sql_conn->FetchRow()) {
 					obj = cJSON_CreateObject();
 					cJSON_AddItemToArray(root,obj);
+					cJSON_AddStringToObject(obj, "task_id", sql_conn->GetField("task_id"));
 					cJSON_AddStringToObject(obj, "task_time", sql_conn->GetField("task_create_time"));
 					cJSON_AddStringToObject(obj, "task_status", sql_conn->GetField("task_status"));
 					cJSON_AddStringToObject(obj, "task_content", sql_conn->GetField("task_content"));
@@ -631,7 +702,89 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			ev_unregister(loop, sock);
 			close(sock);
 			return NULL;
+		}
+		if(strncmp(path, "task_op", 7)==0) {
+			char sql[1024+64];
+			memset(sql, 0, sizeof(sql));
 
+			char *p = strstr(path, "task_id=");
+			if(p==NULL || p=='\0') {
+				ev_unregister(loop, sock);
+				close(sock);
+				return NULL;
+			}
+			p+=8;
+			char *p2 = p;
+		
+			while(isdigit(*p2)) {
+				p2++;
+			}
+			
+			char str_task_id[16];
+			memset(str_task_id, 0, sizeof(str_task_id));
+			strncpy(str_task_id, p, p2-p);
+
+			long long int task_id = atoll(str_task_id);
+
+			p2 = strstr(path, "op=");
+			if(p2==NULL || p2=='\0') {
+				ev_unregister(loop, sock);
+				close(sock);
+				return NULL;
+			}
+			p2+=3;
+			int op = p2[0]-'0';
+
+			printf("-------|task_id:%lld, op:%d\n", task_id, op);
+
+			//end task
+			if(op == 0) {
+				snprintf(sql, 1024, "update chatmessage.task set task_status = 2 where task_id =%lld;", task_id);
+			} else {//delete task
+				time_t t;
+				t = time(NULL);
+				snprintf(sql, 1024, "update chatmessage.task set task_status = 3, task_delete_time = '%ld' where task_id = %lld;", t, task_id);
+			}
+			int ret = 1;
+
+			MysqlEncap *sql_conn = conn_pool->GetOneConn();
+
+			if(sql_conn == NULL) {
+				ret = 0;
+			}
+
+			if(ret) {
+				ret = sql_conn->Execute(sql);
+				conn_pool->ReleaseOneConn(sql_conn);
+			}
+			cJSON *root;
+			char *out;
+
+			memset(sql, 0, sizeof(sql));
+			root = cJSON_CreateObject();
+			if(ret)
+				cJSON_AddStringToObject(root, "status", "success");
+			else
+				cJSON_AddStringToObject(root, "status", "fail");
+
+			out = cJSON_Print(root);
+			cJSON_Delete(root);
+			snprintf(sql, 1024+64, "task_op_cb(%s)", out);
+			
+			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+			if(timer != NULL) {
+				timer->cb = NULL;
+			}
+			int buf_len = 0;
+			if(fd_records[sock].active) {
+				
+				buf_len = sprintf(fd_records[sock].buf, "%s", sql);
+				fd_records[sock].buf[buf_len] = '\0';
+				fd_records[sock].http_code = 2048;//push
+				ev_register(loop, sock, EV_WRITE, write_http_header);
+			}
+			free(out);
+			return NULL;
 		}
 		//**************************************************************************
 		//exclude  all the other connections
