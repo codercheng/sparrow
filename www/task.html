@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>Coder.Cheng | Task</title>
+   <meta  charset="UTF-8">
+   <link href="http://libs.baidu.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+   <script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+   <script src="http://libs.baidu.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+   <style>
+       body {TEXT-ALIGN: center;font-family: Georgia;}
+       a {text-decoration:none;}
+       .task{
+          border: 2px solid #FF4040;
+          width:240px;
+          margin:10px;
+          padding:3px;
+          height: 250px;
+          overflow: auto;
+          border-radius: 10px;
+          float: left;
+          text-align :center;
+           
+        }
+
+      .task div{
+        display: none;
+        margin-left: 55px;
+        margin-top:40px;
+       /* margin-top: 80px;*/
+      }
+      .m_over {
+        border: 4px solid #428BCA;
+      }
+     
+      .label {
+        margin-top:2px;
+        margin-bottom: 10px;
+        /*float: left;*/
+      }
+     
+      p {
+        margin-top: 4px;
+        color: grey;
+      }
+   
+     
+      hr {
+        border: 1px dashed #428BCA;
+        margin-top: 5px;
+        margin-bottom: 2px;
+      }
+      .task hr {
+        border: 1px dashed #FF4040;
+        margin-top: 5px;
+        margin-bottom: 2px;
+      }
+      .finish {
+         border: 2px solid grey;
+      }
+     
+      .btn-warning{
+        border-radius: 20%;
+      }
+   </style>
+
+    <script type="text/javascript">
+      $(document).ready(
+        function (){
+          $(".task").mouseover(over).mouseleave(out);
+          
+          $(".btn-success").click(endTask);
+          $(".btn-danger").click(doDelete);
+          $(".btn-warning").click(refresh);
+          
+          $('input[class="status"]:first').parent('label').addClass('active');
+          $('input[class="time_interval"]:first').parent('label').addClass('active');
+          $("#btn1").click(add('2017-09-23', 2, 'hello shuguangcheng?'));
+          task_query(0, 0);
+        }
+      );
+     
+      function over() {  
+        $(this).children('p').slideUp();
+        $(this).children('div').slideDown("slow");
+        $(this).children('hr').css("border-color", "#428BCA");
+        $(this).addClass('m_over');
+
+      }
+      function out() {  
+        $(this).children('p').slideDown();
+        $(this).children('hr').css("border-color", "#FF4040");
+        $(this).children('div').slideUp("slow");
+        $(this).removeClass('m_over');
+      }
+      function add(time_, status, body){
+        var $time = $("<h></h>").text(time_);
+
+        var $state;
+        if(status == 1)
+          $state = $("<span></span>").addClass("label label-danger").text("未完成...");
+        else
+          $state = $("<span></span>").addClass("label label-default").text("已完成");
+
+        var $text = $("<p></p>").text(body);
+        var $div_btn = $("<div></div>").addClass("btn-group");
+        var $btn1 = $("<button></button>").addClass("btn btn-danger").text("Delete").click(doDelete);
+        var $btn2 = $("<button></button>").addClass("btn btn-success").text("Done").click(endTask);
+
+
+        $div_btn.append($btn1, $btn2);
+        
+        var $task = $("<div></div>").addClass("task").mouseleave(out).mouseover(over)
+        .append($time, $("<hr/>"), $state, $text, $div_btn).prependTo($('#wrapper_task'));
+        
+        //已完成
+        if(status != 1) {
+          $btn2.addClass("disabled");
+          $task.addClass("finish");
+        }
+      }
+      function doDelete() {
+        $(this).parent().parent().slideUp(1000);//css("display","none");
+      }
+      function endTask()
+      {
+        $(this).parent().siblings('span').removeClass("label label-danger").addClass("label label-default").text("已完成");
+        $(this).addClass("disabled");
+        $(this).parent().parent().addClass("finish");
+      }
+
+      function refresh(){
+        $(this).button('loading');
+
+        var status;
+        var time_interval;
+        
+        $('input[class="status"]').parent('label').each(function(index, element){
+            if($(this).hasClass('active')) {
+              status = index;
+              break;
+            }
+        });
+        $('input[class="time_interval"]').parent('label').each(function(index, element){
+            if($(this).hasClass('active')) {
+             time_interval = index;
+             break;
+            }
+        });
+        console.log(':::'+status+'--'+time_interval);
+
+        task_query(status, time_interval);
+
+        $(this).button('reset');
+        
+      }
+
+
+      jQuery('#send-message').submit( function(){
+          var message = jQuery('#send-message input[name=message]').val();
+          if( jQuery.trim( message ) === '' ){
+            alert('Enter a message!');
+            return false;
+          }
+          message = encodeURIComponent(message) 
+          jQuery.ajax({
+            url: 'http://chengshuguang.com:6868/create_new_task',
+            type: 'GET',
+            data: 'message=' + message,
+            dataType: 'jsonp',
+            jsonp: "callback",
+            jsonpCallback:"pushcall",
+            success: function( payload ){
+              if( payload.status == 'fail' ){
+                alert("failed!");
+              } else if( payload.status == 'empty-message' ){
+                alert('Enter a message!');
+              } else{
+                console.log("push:"+payload.status);
+                jQuery('#send-message input[name=message]').val('');
+              }
+            },
+            error: function(){
+              alert("undefined err!");
+            }
+          });
+          return false;
+        });
+    
+    //status: 0, 1, 2
+    //time_interval: 0, 1, 2
+    function task_query(status, time_interval) {
+      jQuery.ajax({
+            url: 'http://chengshuguang.com:6868/task_query',
+            type: 'GET',
+            data: 'status=' + status +'&time_interval=' + time_interval,
+            dataType: "jsonp",
+            jsonp: "callback",
+            jsonpCallback:"task_query",
+            
+            success: function(message){
+
+              $.each(message, function(idx, obj) {
+                $('#wrapper_task').empty();
+                add(obj.time, obj.status, obj.text);
+                
+              });
+            
+            },
+            error: function(){
+              console.log("pull return error\n");
+              alert("err");
+            }
+          });
+    }
+    </script>
+</head>
+<body>
+
+
+
+<div id = "wrapper">
+   <button class="btn btn-primary btn-block btn-large" data-toggle="modal" data-target="#myModal"> New Task</button>
+
+
+
+  <div class="modal fade" id="myModal" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+               <div class="modal-content">
+                  <div class="modal-header">
+                     <button type="button" class="close"
+                        data-dismiss="modal" aria-hidden="true">
+                           &times;
+                     </button>
+                     <h5 class="modal-title" id="myModalLabel" >
+                        New Task
+                     </h5>
+                  </div>
+                  <div class="modal-body">
+                     Note: Sorry, only the <strong>Admin</strong> has permissions to Create, Delete and finish tasks NOW!
+                  </div>
+                  <div class="modal-footer">
+                   
+                     <form method="POST" id="send-message">
+                       <div class="input-group">
+                           <input name="message" type="text" class="form-control" placeholder="Your task here!">
+                           <span class="input-group-btn">
+                              <input class="btn btn-primary" type="submit" value="Create">
+                           </span>
+                        </div>
+                     </form>
+                   
+                  </div>
+               </div>
+            </div>
+  </div>
+
+    <div >
+            <ul class="nav nav-tabs">
+                <li >
+                   <a href="home.html">HOME</a>
+                </li>
+                <li >
+                   <a href="project.html">PROJECT</a>
+                </li>
+                <li class="disabled">
+                   <a href="#">BLOG</a>
+                </li>
+                <li>
+                   <a href="about.html">ABOUT</a>
+                </li>
+                 <li class="active">
+                   <a href="#">Task</a>
+                </li>
+                <li class="dropdown pull-right">
+                   <a class="dropdown-toggle" data-toggle="dropdown" href="#">MORE>></a>
+                   <ul class="dropdown-menu">
+                      <li>
+                         <a href="https://github.com/codercheng/" target="github">GITHUB</a>
+                      </li>
+                      <li>
+                         <a href="http://weibo.com/shuguangcheng" target="weibo">WEIBO</a>
+                      </li>
+                      <li class="divider">
+                      </li>
+                      <li>
+                         <a href="index.html">START PAGE</a>
+                      </li>
+                   </ul>
+                </li>
+             </ul>
+             <br/>
+             <hr/>
+    </div>
+
+    <div class="accordion" id="accordion-292822" style="margin-top:1px">
+          <div class="accordion-group">
+                    <div class="accordion-heading">
+                      <a class="accordion-toggle collapsed"  data-parent="#accordion-292822" data-toggle="collapse" style="text-decoration:none" href="#accordion-element-762390">filter &raquo;&raquo;</a>
+                    </div>
+
+                    <div class="accordion-body collapse" id="accordion-element-762390" style="border:2px ridge #428BCA; border-radius: 10px;">
+                        <div class="accordion-inner" style="margin-top: 20px; margin-bottom: 20px" >
+                                          <div class="btn-group" data-toggle="buttons">
+                                                 <label class="btn btn-primary label_status" >
+                                                    <input type="radio" class = "status"> 全部&nbsp;&nbsp;
+                                                 </label>
+                                                 <label class="btn btn-primary label_status">
+                                                    <input type="radio" name = "unfinish" class = "status"> 未完成
+                                                 </label>
+                                                 <label class="btn btn-primary label_status">
+                                                    <input type="radio" class = "status" > 已完成
+                                                 </label>
+                                          </div>
+
+                                        <div class="btn-group" data-toggle="buttons" >
+                                               <label class="btn btn-primary">
+                                                  <input type="radio" class = "time_interval"> 1周内
+                                               </label>
+                                               <label class="btn btn-primary">
+                                                  <input type="radio" class = "time_interval"> 1月内
+                                               </label>
+                                               <label class="btn btn-primary">
+                                                  <input type="radio" class = "time_interval"> 1年内
+                                               </label>
+                                        </div>
+                                            <br/>
+                                            <br/>
+
+                                      <button class = "btn btn-warning" data-loading-text="refresh ..."> Refresh</button>
+                        </div>
+                  </div>
+          </div>
+    </div>
+    <hr/>
+
+
+
+  <div id = "wrapper_task">
+   
+      <div class = "task">
+          <h>2015-01-06</h>
+          <hr/>
+          <span class="label label-default">已完成</span>
+          <p>Given stringits anfasd d its asd d sd d itd d its asd d its asd d its asd d its a ffffffsd d infaffffffffffffffffffff ffffffffffffffffffffffffff     f asds    asd     fassa fassd d infasd d infasd d ifasd d infasd d its affffffff ffff bfasd fasdf afsad ffasd nfasd d its anfasd d its anfasd d sum of</p>
+          <div class="btn-group">
+            <button  class="btn btn-danger">Delete</button>
+            <button  class="btn btn-success">Done</button>
+          </div>
+      </div>
+      <div class = "task">
+          <h>2015-01-06</h>
+          <hr/>
+          <span class="label label-default">已完成</span>
+          <p>正谋求连任的国际足联主席布拉特遇到了挑战者，现年的39岁的国际足联副主席、约旦王子阿里·本·阿尔·侯赛</p>
+          <div class="btn-group">
+            <button  class="btn btn-danger">Delete</button>
+            <button  class="btn btn-success">Done</button>
+          </div>
+      </div>
+      <div class = "task">
+          <h>2015-01-06</h>
+          <hr/>
+
+         <span class="label label-danger">未完成</span>
+         <p>Given stringits and sum of left k</p>
+          <div class="btn-group">
+            <button  class="btn btn-danger ">Delete</button>
+            <button  class="btn btn-success ">Done</button>
+          </div>
+      </div>
+  </div>
+ 
+
+</div>
+
+
+
+
+   <button id= "btn1" class="btn btn-fail btn-block btn-large" type="button">add</button>
+
+  <hr/>
+   <div style="height:30px; margin-top:10px;">
+      <p style="color: grey;">Powered by
+         <a style="color: grey; " href="https://github.com/codercheng/sparrow" target="github_sparrow">
+         Sparrow V0.1
+         </a>
+      </p>
+   </div>
+
+</body>
+</html>
