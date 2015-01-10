@@ -352,7 +352,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			int ret;
 			ret = sql_conn->ExecuteQuery(sql);
 			if(!ret) {
-				fprintf(stderr, "ExecuteQuery error when livechat pull come\n!");
+				fprintf(stderr, "ExecuteQuery error when livechat pull come!\n");
 				ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
 				if(timer != NULL) {
 					timer->cb = NULL;
@@ -531,6 +531,107 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			}
 			free(out);
 			return NULL;
+		}
+		if(strncmp(path, "task_query", 10)==0) {
+			char sql[1024];
+			memset(sql, 0, sizeof(sql));
+
+			char *p = strstr(path, "status=");
+			if(p==NULL || p=='\0') {
+				ev_unregister(loop, sock);
+				close(sock);
+				return NULL;
+			}
+			p+=7;
+			int status = p[0]-'0';
+			
+			char *p2 = strstr(path, "time_interval=");
+			if(p2==NULL || p2=='\0') {
+				ev_unregister(loop, sock);
+				close(sock);
+				return NULL;
+			}
+			p2+=14;
+			int time_interval = p[2]-'0';
+
+			printf("status:%d, time_interval:%d\n", status, time_interval);
+
+			time_t t;
+			t = time(NULL);
+
+			if(time_interval == 0) { /*1 week*/
+				t -= 3600*24*7;
+			} else if(time_interval == 1) { /*1 month*/
+				t -= 3600*24 * 31; 
+			} else if(time_interval == 2) { /*1 year*/
+				t -= 3600*24*366;
+			} else {
+				t = 0;
+			}
+			// char str_time[16];
+			// sprintf(str_time, "%ld", t);
+			if(status != 0) {
+				snprintf(sql, 1024, "select task_create_time, task_status, task_content from chatmessage.task where task_status = %d and task_create_time >= '%ld';", status, t);
+			} else {
+				snprintf(sql, 1024, "select task_create_time, task_status, task_content from chatmessage.task where task_create_time >= '%ld';", t);
+			}
+			MysqlEncap *sql_conn = conn_pool->GetOneConn();
+			int ret;
+			ret = sql_conn->ExecuteQuery(sql);
+			if(!ret) {
+				fprintf(stderr, "ExecuteQuery error when task request come!\n");
+				ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+				if(timer != NULL) {
+					timer->cb = NULL;
+				}
+				ev_unregister(loop, sock);
+				close(sock);
+				return NULL;
+			}
+
+			conn_pool->ReleaseOneConn(sql_conn);
+
+			int count = sql_conn->GetQueryResultCount();
+
+			if(count!=0) {
+				cJSON *root, *obj;
+				char *out;
+				root = cJSON_CreateArray();
+				while(sql_conn->FetchRow()) {
+					obj = cJSON_CreateObject();
+					cJSON_AddItemToArray(root,obj);
+					cJSON_AddStringToObject(obj, "task_time", sql_conn->GetField("task_create_time"));
+					cJSON_AddStringToObject(obj, "task_status", sql_conn->GetField("task_status"));
+					cJSON_AddStringToObject(obj, "task_content", sql_conn->GetField("task_content"));
+					//cJSON_Delete(obj);
+				}
+				out = cJSON_Print(root);
+				//cJSON_Delete(obj);
+				cJSON_Delete(root);
+
+
+				ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+				if(timer != NULL) {
+					timer->cb = NULL;
+				}
+				int buf_len = 0;
+				if(fd_records[sock].active) {
+					
+					buf_len = sprintf(fd_records[sock].buf, "task_query_cb(%s)", out);
+					fd_records[sock].buf[buf_len] = '\0';
+					fd_records[sock].http_code = 2048;//task_query
+					ev_register(loop, sock, EV_WRITE, write_http_header);
+				}
+				free(out);
+				return NULL;
+			}
+
+
+
+			ev_unregister(loop, sock);
+			close(sock);
+			return NULL;
+
 		}
 		//**************************************************************************
 		//exclude  all the other connections
