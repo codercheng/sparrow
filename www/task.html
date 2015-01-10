@@ -55,12 +55,14 @@
         margin-bottom: 2px;
       }
       .finish {
-         border: 2px solid grey;
+         border: 1px solid grey;
       }
      
       .btn-warning{
         border-radius: 20%;
       }
+     
+
    </style>
 
     <script type="text/javascript">
@@ -74,7 +76,7 @@
           
           $('input[class="status"]:first').parent('label').addClass('active');
           $('input[class="time_interval"]:first').parent('label').addClass('active');
-          //$("#btn1").click(add('2017-09-23', 2, 'hello shuguangcheng?'));
+          $('#send-message').submit(create_new_task);
           task_query(0, 0);
         }
       );
@@ -92,16 +94,21 @@
         $(this).children('div').slideUp("slow");
         $(this).removeClass('m_over');
       }
-      function add(time_, status, body){
-        var $time = $("<h></h>").text(time_);
+      function add(task_obj){
+        //var task_time = task_obj.task_time;
+        var date = new Date(parseInt(task_obj.task_time+'000', 10));
+        Y = date.getFullYear() + '-';
+        M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
+        D = date.getDate() + ' ';
+        var $time = $("<h></h>").text(Y+M+D);
 
-        var $state;
-        if(status == 1)
-          $state = $("<span></span>").addClass("label label-danger").text("未完成...");
+        var $status;
+        if(task_obj.task_status == 1)
+          $status = $("<span></span>").addClass("label label-danger").text("未完成...");
         else
-          $state = $("<span></span>").addClass("label label-default").text("已完成");
+          $status = $("<span></span>").addClass("label label-default").text("已完成");
 
-        var $text = $("<p></p>").text(body);
+        var $text = $("<p></p>").text(task_obj.task_content);
         var $div_btn = $("<div></div>").addClass("btn-group");
         var $btn1 = $("<button></button>").addClass("btn btn-danger").text("Delete").click(doDelete);
         var $btn2 = $("<button></button>").addClass("btn btn-success").text("Done").click(endTask);
@@ -109,28 +116,69 @@
 
         $div_btn.append($btn1, $btn2);
         
-        var $task = $("<div></div>").addClass("task").mouseleave(out).mouseover(over)
-        .append($time, $("<hr/>"), $state, $text, $div_btn).appendTo($('#wrapper_task'));
+        var $task = $("<div></div>").data('task_obj', task_obj).addClass("task").mouseleave(out).mouseover(over)
+        .append($time, $("<hr/>"), $status, $text, $div_btn).prependTo($('#wrapper_task'));
         
         //已完成
-        if(status != 1) {
+        if(task_obj.task_status != 1) {
           $btn2.addClass("disabled");
           $task.addClass("finish");
         }
       }
+      //op == 1
       function doDelete() {
-        $(this).parent().parent().slideUp(1000);//css("display","none");
+        var task_obj = $(this).parent().parent().data('task_obj');
+        var $btn_tmp = $(this);
+        jQuery.ajax({
+            url: 'http://127.0.0.1:6868/task_op',
+            type: 'GET',
+            data: 'task_id=' + task_obj.task_id +'&op=' + 1,
+            dataType: "jsonp",
+            jsonp: "callback",
+            jsonpCallback:"task_op_cb",
+            
+            success: function(message) {
+              if(message.status == 'success') {
+                $btn_tmp.parent().parent().slideUp("slow");
+              } else {
+                alert("server side error!");
+              }
+            },
+            error: function(){
+              alert("undefined err!");
+            }
+          });
       }
-      function endTask()
-      {
-        $(this).parent().siblings('span').removeClass("label label-danger").addClass("label label-default").text("已完成");
-        $(this).addClass("disabled");
-        $(this).parent().parent().addClass("finish");
+      //op == 0
+      function endTask() {
+        var task_obj = $(this).parent().parent().data('task_obj');
+        var $btn_tmp = $(this);
+        jQuery.ajax({
+            url: 'http://127.0.0.1:6868/task_op',
+            type: 'GET',
+            data: 'task_id=' + task_obj.task_id +'&op=' + 0,
+            dataType: "jsonp",
+            jsonp: "callback",
+            jsonpCallback:"task_op_cb",
+            
+            success: function(message) {
+              if(message.status == 'success') {
+                $btn_tmp.parent().siblings('span').removeClass("label label-danger").addClass("label label-default").text("已完成");
+                $btn_tmp.addClass("disabled");
+                $btn_tmp.parent().parent().addClass("finish");
+              } else {
+                alert("server side error!");
+              }
+            },
+            error: function(){
+              alert("undefined err!");
+            }
+          });
       }
 
       function refresh(){
-        $(this).button('loading');
-
+        $("#refresh_btn").button('loading');
+          
         var status;
         var time_interval;
         
@@ -150,41 +198,44 @@
 
         task_query(status, time_interval);
 
-        $(this).button('reset');
+       $("#refresh_btn").button('reset');
         
       }
 
 
-      // jQuery('#send-message').submit( function(){
-      //     var message = jQuery('#send-message input[name=message]').val();
-      //     if( jQuery.trim( message ) === '' ){
-      //       alert('Enter a message!');
-      //       return false;
-      //     }
-      //     message = encodeURIComponent(message) 
-      //     jQuery.ajax({
-      //       url: 'http://127.0.0.1:6868/create_new_task',
-      //       type: 'GET',
-      //       data: 'message=' + message,
-      //       dataType: 'jsonp',
-      //       jsonp: "callback",
-      //       jsonpCallback:"pushcall",
-      //       success: function( payload ){
-      //         if( payload.status == 'fail' ){
-      //           alert("failed!");
-      //         } else if( payload.status == 'empty-message' ){
-      //           alert('Enter a message!');
-      //         } else{
-      //           console.log("push:"+payload.status);
-      //           jQuery('#send-message input[name=message]').val('');
-      //         }
-      //       },
-      //       error: function(){
-      //         alert("undefined err!");
-      //       }
-      //     });
-      //     return false;
-      //   });
+      function create_new_task(){
+          var message = jQuery('#send-message input[name=message]').val();
+          if( jQuery.trim( message ) === '' ){
+            alert('Enter a message!');
+            return false;
+          }
+          message = encodeURIComponent(message) 
+          jQuery.ajax({
+            url: 'http://127.0.0.1:6868/create_new_task',
+            type: 'GET',
+            data: 'message=' + message,
+            dataType: 'jsonp',
+            jsonp: "callback",
+            jsonpCallback:"create_task_cb",
+            success: function( payload ){
+              if( payload.status == 'fail' ){
+                alert("failed!");
+              } else if( payload.status == 'empty-message' ){
+                alert('Enter a message!');
+              } else{
+                console.log("push:"+payload.status);
+                jQuery('#send-message input[name=message]').val('');
+                // $(".modal-body").text("New task has been created successfully!>>>");
+                $("#myModal").modal('hide');
+                refresh();
+              }
+            },
+            error: function(){
+              alert("undefined err!");
+            }
+          });
+          return false;
+        }
     
     //status: 0, 1, 2
     //time_interval: 0, 1, 2
@@ -202,15 +253,15 @@
             
             success: function(message){
               $('#wrapper_task').empty();
-              $.each(message, function(idx, obj) {
-                add(obj.task_time, obj.task_status, obj.task_content);
-                
+              $.each(message, function(idx, task) {
+                add(task);
               });
             
             },
             error: function(){
+              $('#wrapper_task').empty();
               console.log("pull return error\n");
-              alert("err");
+             // alert("err");
             }
           });
     }
@@ -243,7 +294,7 @@
                   </div>
                   <div class="modal-footer">
                    
-                     <form method="POST" id="send-message">
+                     <form id="send-message">
                        <div class="input-group">
                            <input name="message" type="text" class="form-control" placeholder="Your task here!">
                            <span class="input-group-btn">
@@ -329,7 +380,7 @@
                                             <br/>
                                             <br/>
 
-                                      <button class = "btn btn-warning" data-loading-text="refresh ..."> Refresh</button>
+                                      <button class = "btn btn-warning" data-loading-text="refresh ..." id="refresh_btn"> Refresh</button>
                         </div>
                   </div>
           </div>
@@ -339,25 +390,10 @@
 
 
   <div id = "wrapper_task">
-    <div class = "task">
-          <h>2015-01-06</h>
-          <hr/>
-
-         <span class="label label-danger">未完成</span>
-         <p>Given stringits and sum of left k</p>
-          <div class="btn-group">
-            <button  class="btn btn-danger ">Delete</button>
-            <button  class="btn btn-success ">Done</button>
-          </div>
-      </div>
+   
   </div>
  
-
-</div>
-
-
-  <br/>
-  <hr/>
+   <hr/>
    <div style="height:30px; margin-top:10px;">
       <p style="color: grey;">Powered by
          <a style="color: grey; " href="https://github.com/codercheng/sparrow" target="github_sparrow">
@@ -365,6 +401,15 @@
          </a>
       </p>
    </div>
+
+
+</div>
+
+
+  
+ 
+
+
 
 </body>
 </html>
