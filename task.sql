@@ -13,6 +13,6 @@ CREATE TABLE task (
 CREATE INDEX IDX_task_create_time on task(task_create_time);
 
 
-insert into task values(NULL, 'simon', 'create_time', 'task_delete_time',
-'task_finish_time', 1, 'task_content');
+insert into task values(NULL, 'simon', '12345678900', '12345678900',
+'12345678900', 1, 'for test');
 

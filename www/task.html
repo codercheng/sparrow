@@ -110,7 +110,7 @@
         $div_btn.append($btn1, $btn2);
         
         var $task = $("<div></div>").addClass("task").mouseleave(out).mouseover(over)
-        .append($time, $("<hr/>"), $state, $text, $div_btn).prependTo($('#wrapper_task'));
+        .append($time, $("<hr/>"), $state, $text, $div_btn).appendTo($('#wrapper_task'));
         
         //已完成
         if(status != 1) {
@@ -155,53 +155,55 @@
       }
 
 
-      jQuery('#send-message').submit( function(){
-          var message = jQuery('#send-message input[name=message]').val();
-          if( jQuery.trim( message ) === '' ){
-            alert('Enter a message!');
-            return false;
-          }
-          message = encodeURIComponent(message) 
-          jQuery.ajax({
-            url: 'http://chengshuguang.com:6868/create_new_task',
-            type: 'GET',
-            data: 'message=' + message,
-            dataType: 'jsonp',
-            jsonp: "callback",
-            jsonpCallback:"pushcall",
-            success: function( payload ){
-              if( payload.status == 'fail' ){
-                alert("failed!");
-              } else if( payload.status == 'empty-message' ){
-                alert('Enter a message!');
-              } else{
-                console.log("push:"+payload.status);
-                jQuery('#send-message input[name=message]').val('');
-              }
-            },
-            error: function(){
-              alert("undefined err!");
-            }
-          });
-          return false;
-        });
+      // jQuery('#send-message').submit( function(){
+      //     var message = jQuery('#send-message input[name=message]').val();
+      //     if( jQuery.trim( message ) === '' ){
+      //       alert('Enter a message!');
+      //       return false;
+      //     }
+      //     message = encodeURIComponent(message) 
+      //     jQuery.ajax({
+      //       url: 'http://127.0.0.1:6868/create_new_task',
+      //       type: 'GET',
+      //       data: 'message=' + message,
+      //       dataType: 'jsonp',
+      //       jsonp: "callback",
+      //       jsonpCallback:"pushcall",
+      //       success: function( payload ){
+      //         if( payload.status == 'fail' ){
+      //           alert("failed!");
+      //         } else if( payload.status == 'empty-message' ){
+      //           alert('Enter a message!');
+      //         } else{
+      //           console.log("push:"+payload.status);
+      //           jQuery('#send-message input[name=message]').val('');
+      //         }
+      //       },
+      //       error: function(){
+      //         alert("undefined err!");
+      //       }
+      //     });
+      //     return false;
+      //   });
     
     //status: 0, 1, 2
     //time_interval: 0, 1, 2
     function task_query(status, time_interval) {
+      console.log('inside task_query-->'+status+','+time_interval);
+      if(status == undefined || time_interval == undefined)
+        return;
       jQuery.ajax({
-            url: 'http://chengshuguang.com:6868/task_query',
+            url: 'http://127.0.0.1:6868/task_query',
             type: 'GET',
             data: 'status=' + status +'&time_interval=' + time_interval,
             dataType: "jsonp",
             jsonp: "callback",
-            jsonpCallback:"task_query",
+            jsonpCallback:"task_query_cb",
             
             success: function(message){
-
+              $('#wrapper_task').empty();
               $.each(message, function(idx, obj) {
-                $('#wrapper_task').empty();
-                add(obj.time, obj.status, obj.text);
+                add(obj.task_time, obj.task_status, obj.task_content);
                 
               });
             
@@ -337,13 +339,24 @@
 
 
   <div id = "wrapper_task">
+    <div class = "task">
+          <h>2015-01-06</h>
+          <hr/>
+
+         <span class="label label-danger">未完成</span>
+         <p>Given stringits and sum of left k</p>
+          <div class="btn-group">
+            <button  class="btn btn-danger ">Delete</button>
+            <button  class="btn btn-success ">Done</button>
+          </div>
+      </div>
   </div>
  
 
 </div>
 
 
-
+  <br/>
   <hr/>
    <div style="height:30px; margin-top:10px;">
       <p style="color: grey;">Powered by
