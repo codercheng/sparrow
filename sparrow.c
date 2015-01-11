@@ -284,19 +284,6 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		strncpy(path, buf+1+4, len);
 		path[len] = '\0';        //can not forget
 		
-		//defualt home page
-		if(strcmp(path, "") == 0) {
-			sprintf(path, "/%s", conf.def_home_page);
-		} else {
-			/*decode, 解决url中包含中文被转码的问题*/
-			url_decode(path, strlen(path));
-		}
-		
-		char *prefix = work_dir;
-		char filename[1024 + 1 + strlen(work_dir)];//full path
-		strncpy(filename, prefix, strlen(prefix));
-		strncpy(filename+strlen(prefix), path, strlen(path)+1);
-
 		//**************************************************************************
 		// Dynamic service entry
 		//**************************************************************************
@@ -339,8 +326,6 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 
 			long long int last_mid = atoll(p);
-
-			//printf("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&:last_mid:%lld\n", last_mid);
 
 			MysqlEncap *sql_conn = conn_pool->GetOneConn();
 			if(last_mid == 0) {
@@ -411,28 +396,43 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			return NULL;
 		}
 		if(strncmp(path, "push", 4)==0) {
-			char *p = strstr(path, "message=");
-			if(p==NULL || p=='\0') {
+			char message[1024*2+128];
+			memset(message, 0, sizeof(message));
+			KV kvs[10];
+		    int  kvs_num = sizeof(kvs)/sizeof(kvs[0]);
+			int ret = getKV(path, kvs, &kvs_num);
+			if(ret == -1) {
 				ev_unregister(loop, sock);
 				close(sock);
 				return NULL;
 			}
-			p+=8;
-			char *p2 = strchr(p, '&');
-			if(p2 != NULL) {
-				*p2 = '\0';
+			int hasMessage = 0;
+			int i;
+			for (i=0; i<kvs_num; i++) {
+		        printf("%.*s=%.*s\n", kvs[i].key_len, kvs[i].key, kvs[i].value_len, kvs[i].value);
+		        if(strncmp("message", kvs[i].key, kvs[i].key_len)==0) {
+		        	strncpy(message, kvs[i].value, kvs[i].value_len<1024 ? kvs[i].value_len:1024);
+		        	hasMessage = 1;
+		        }
 			}
-			if(strlen(p) > 1024) {
-				p[1024] = '\0';
+			if(!hasMessage) {
+				ev_unregister(loop, sock);
+				close(sock);
+				return NULL;
 			}
-			char message[1024+64];
-			memset(message, 0, sizeof(message));
+			//after decoding,  the len is less than before
+			url_decode(message, strlen(message));
+			//a copy of text body
+			char body[1024];
+			memset(body, 0, sizeof(body));
+			strncpy(body, message, 1023);
 
-			int ret = 1;
+			ret = 1;
 
 			time_t t;
 			t = time(NULL);
 
+			//url_decode(p, strlen(p));
 
 			//insert into db
 			MysqlEncap *sql_conn = conn_pool->GetOneConn();
@@ -440,7 +440,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 			char p_escape[1024*2+1];
 			if(sql_conn!=NULL)
-				sql_conn->EscapeString(p_escape, p);
+				sql_conn->EscapeString(p_escape, message);
 
 			//printf("*****StringEscape:%s\n", p_escape);
 
@@ -449,7 +449,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			}
 			char *new_mid = NULL;
 			if(ret) {
-				snprintf(message, 1024+64, "INSERT INTO chatmessage.message VALUES(NULL, '%ld', '%s');",\
+				snprintf(message, sizeof(message), "INSERT INTO chatmessage.message VALUES(NULL, '%ld', '%s');",\
 					t, p_escape);
 				ret = sql_conn->Execute(message);
 				if(ret) {
@@ -481,7 +481,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				cJSON_AddItemToArray(root, obj);
 				cJSON_AddStringToObject(obj, "id", new_mid);
 				cJSON_AddStringToObject(obj, "time", time_now);
-				cJSON_AddStringToObject(obj, "body", p);
+				cJSON_AddStringToObject(obj, "body", body);
 
 				out = cJSON_Print(root);
 				cJSON_Delete(root);
@@ -535,24 +535,30 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			return NULL;
 		}
 		if(strncmp(path, "create_new_task", 15)==0) {
-			char *p = strstr(path, "message=");
-			if(p==NULL || p=='\0') {
+			char message[1024*2+128];
+			memset(message, 0, sizeof(message));
+
+			KV kvs[10];
+		    int  kvs_num = sizeof(kvs)/sizeof(kvs[0]);
+			int ret = getKV(path, kvs, &kvs_num);
+			if(ret == -1) {
 				ev_unregister(loop, sock);
 				close(sock);
 				return NULL;
 			}
-			p+=8;
-			char *p2 = strchr(p, '&');
-			if(p2 != NULL) {
-				*p2 = '\0';
-			}
-			if(strlen(p) > 1024) {
-				p[1024] = '\0';
-			}
-			char message[1024+64];
-			memset(message, 0, sizeof(message));
 
-			int ret = 1;
+			int i;
+			for (i=0; i<kvs_num; i++) {
+		        printf("%.*s=%.*s\n", kvs[i].key_len, kvs[i].key, kvs[i].value_len, kvs[i].value);
+		        if(strncmp("message", kvs[i].key, kvs[i].key_len)==0) {
+		        	strncpy(message, kvs[i].value, kvs[i].value_len<1024 ? kvs[i].value_len:1024);
+		        }
+			}
+
+			//after decoding,  the len is less than before
+			url_decode(message, strlen(message));
+
+			ret = 1;
 
 			time_t t;
 			t = time(NULL);
@@ -561,14 +567,14 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 			char p_escape[1024*2+1];
 			if(sql_conn!=NULL)
-				sql_conn->EscapeString(p_escape, p);
+				sql_conn->EscapeString(p_escape, message);
 
 			if(sql_conn == NULL) {
 				ret = 0;
 			}
 
 			if(ret) {
-				snprintf(message, 1024+64, "INSERT INTO chatmessage.task VALUES(NULL, 'simon', '%ld', NULL, NULL, 1, '%s');",\
+				snprintf(message, sizeof(message), "INSERT INTO chatmessage.task VALUES(NULL, 'simon', '%ld', NULL, NULL, 1, '%s');",\
 					t, p_escape);
 				ret = sql_conn->Execute(message);
 				conn_pool->ReleaseOneConn(sql_conn);
@@ -606,23 +612,27 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			char sql[1024];
 			memset(sql, 0, sizeof(sql));
 
-			char *p = strstr(path, "status=");
-			if(p==NULL || p=='\0') {
+			int status = 0;
+			int time_interval = 0;
+
+			KV kvs[10];
+		    int  kvs_num = sizeof(kvs)/sizeof(kvs[0]);
+			int ret = getKV(path, kvs, &kvs_num);
+			if(ret == -1) {
 				ev_unregister(loop, sock);
 				close(sock);
 				return NULL;
 			}
-			p+=7;
-			int status = p[0]-'0';
-			
-			char *p2 = strstr(path, "time_interval=");
-			if(p2==NULL || p2=='\0') {
-				ev_unregister(loop, sock);
-				close(sock);
-				return NULL;
+
+			int i;
+			for (i=0; i<kvs_num; i++) {
+		        //printf("%.*s=%.*s\n", kvs[i].key_len, kvs[i].key, kvs[i].value_len, kvs[i].value);
+		        if(strncmp("status", kvs[i].key, kvs[i].key_len)==0) {
+		        	status = *kvs[i].value - '0';
+		        } else if(strncmp("time_interval", kvs[i].key, kvs[i].key_len)==0) {
+		        	time_interval = *kvs[i].value - '0';
+		        }
 			}
-			p2+=14;
-			int time_interval = p[0]-'0';
 
 			printf("status:%d, time_interval:%d\n", status, time_interval);
 
@@ -646,7 +656,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				snprintf(sql, 1024, "select task_id, task_create_time, task_status, task_content from chatmessage.task where task_status != 3 and task_create_time >= '%ld';", t);
 			}
 			MysqlEncap *sql_conn = conn_pool->GetOneConn();
-			int ret;
+			//int ret;
 			ret = sql_conn->ExecuteQuery(sql);
 			if(!ret) {
 				fprintf(stderr, "ExecuteQuery error when task request come!\n");
@@ -707,47 +717,53 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			char sql[1024+64];
 			memset(sql, 0, sizeof(sql));
 
-			char *p = strstr(path, "task_id=");
-			if(p==NULL || p=='\0') {
-				ev_unregister(loop, sock);
-				close(sock);
-				return NULL;
-			}
-			p+=8;
-			char *p2 = p;
-		
-			while(isdigit(*p2)) {
-				p2++;
-			}
-			
+			long long int task_id = -1;
+			int op = -1;
+
 			char str_task_id[16];
 			memset(str_task_id, 0, sizeof(str_task_id));
-			strncpy(str_task_id, p, p2-p);
 
-			long long int task_id = atoll(str_task_id);
-
-			p2 = strstr(path, "op=");
-			if(p2==NULL || p2=='\0') {
+			KV kvs[10];
+		    int  kvs_num = sizeof(kvs)/sizeof(kvs[0]);
+			int ret = getKV(path, kvs, &kvs_num);
+			if(ret == -1) {
 				ev_unregister(loop, sock);
 				close(sock);
 				return NULL;
 			}
-			p2+=3;
-			int op = p2[0]-'0';
+
+			int i;
+			for (i=0; i<kvs_num; i++) {
+		        printf("%.*s=%.*s\n", kvs[i].key_len, kvs[i].key, kvs[i].value_len, kvs[i].value);
+		        if(strncmp("task_id", kvs[i].key, kvs[i].key_len)==0) {
+		        	strncpy(str_task_id, kvs[i].value, kvs[i].value_len);
+		        	task_id = atoll(str_task_id);
+		        } else if(strncmp("op", kvs[i].key, kvs[i].key_len)==0) {
+		        	op = *kvs[i].value - '0';
+		        }
+			}
+
 
 			printf("-------|task_id:%lld, op:%d\n", task_id, op);
+
+			ret = 1;
 
 			//end task
 			if(op == 0) {
 				snprintf(sql, 1024, "update chatmessage.task set task_status = 2 where task_id =%lld;", task_id);
-			} else {//delete task
+			} else if(op == 1) {//delete task
 				time_t t;
 				t = time(NULL);
 				snprintf(sql, 1024, "update chatmessage.task set task_status = 3, task_delete_time = '%ld' where task_id = %lld;", t, task_id);
+			} else {
+				ret =0;
 			}
-			int ret = 1;
+			if(task_id == -1)
+				ret = 0;
 
-			MysqlEncap *sql_conn = conn_pool->GetOneConn();
+			MysqlEncap *sql_conn;
+			if(ret)
+				sql_conn = conn_pool->GetOneConn();
 
 			if(sql_conn == NULL) {
 				ret = 0;
@@ -792,7 +808,22 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		close(sock);
 		return NULL;
 		//**************************************************************************
-				
+		
+
+
+		//defualt home page
+		if(strcmp(path, "") == 0) {
+			sprintf(path, "/%s", conf.def_home_page);
+		} else {
+			/*decode, 解决url中包含中文被转码的问题*/
+			url_decode(path, strlen(path));
+		}
+		char *prefix = work_dir;
+		char filename[1024 + 1 + strlen(work_dir)];//full path
+		strncpy(filename, prefix, strlen(prefix));
+		strncpy(filename+strlen(prefix), path, strlen(path)+1);
+
+
 		struct stat filestat;
 		time_t last_modified_time;
 		int s = lstat(filename, &filestat);
