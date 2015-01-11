@@ -66,7 +66,9 @@
    </style>
 
     <script type="text/javascript">
-      $(document).ready(
+    var g_domain = 'http://chengshuguang.com';
+	var g_port = '6868';
+	$(document).ready(
         function (){
           $(".task").mouseover(over).mouseleave(out);
           
@@ -130,7 +132,7 @@
         var task_obj = $(this).parent().parent().data('task_obj');
         var $btn_tmp = $(this);
         jQuery.ajax({
-            url: 'http://127.0.0.1:6868/task_op',
+			url: g_domain+':'+g_port+'/task_op',
             type: 'GET',
             data: 'task_id=' + task_obj.task_id +'&op=' + 1,
             dataType: "jsonp",
@@ -154,7 +156,7 @@
         var task_obj = $(this).parent().parent().data('task_obj');
         var $btn_tmp = $(this);
         jQuery.ajax({
-            url: 'http://127.0.0.1:6868/task_op',
+			url: g_domain+':'+g_port+'/task_op',
             type: 'GET',
             data: 'task_id=' + task_obj.task_id +'&op=' + 0,
             dataType: "jsonp",
@@ -174,7 +176,7 @@
               alert("undefined err!");
             }
           });
-      }
+	  }
 
       function refresh(){
         $("#refresh_btn").button('loading');
@@ -211,7 +213,7 @@
           }
           message = encodeURIComponent(message) 
           jQuery.ajax({
-            url: 'http://127.0.0.1:6868/create_new_task',
+			url: g_domain+':'+g_port+'/create_new_task',
             type: 'GET',
             data: 'message=' + message,
             dataType: 'jsonp',
@@ -244,7 +246,7 @@
       if(status == undefined || time_interval == undefined)
         return;
       jQuery.ajax({
-            url: 'http://127.0.0.1:6868/task_query',
+			url: g_domain+':'+g_port+'/task_query',
             type: 'GET',
             data: 'status=' + status +'&time_interval=' + time_interval,
             dataType: "jsonp",
@@ -322,6 +324,9 @@
                 <li>
                    <a href="about.html">ABOUT</a>
                 </li>
+				<li>
+					<a href="ajax.html">ChatRoom</a>
+				</li>
                  <li class="active">
                    <a href="#">Task</a>
                 </li>
@@ -392,7 +397,9 @@
   <div id = "wrapper_task">
    
   </div>
- 
+</div> 
+	<button class="btn btn-primary btn-block btn-large" data-toggle="modal" data-target="#myModal"> Add A New Task</button>
+
    <hr/>
    <div style="height:30px; margin-top:10px;">
       <p style="color: grey;">Powered by
@@ -401,14 +408,6 @@
          </a>
       </p>
    </div>
-
-
-</div>
-
-
-  
- 
-
 
 
 </body>
