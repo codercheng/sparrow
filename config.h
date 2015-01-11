@@ -29,7 +29,7 @@ extern "C"
 
 #define DEF_MAX_SUB_ITEM_NUM 100
 
-#define IS_EQUAL(str1, str2) strncmp(str1, str2, strlen(str2))== 0
+#define IS_EQUAL(str1, str2) strcmp(str1, str2)== 0
 
 typedef struct {
 	int listen_port;

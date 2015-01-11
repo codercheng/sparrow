@@ -10,6 +10,11 @@ CREATE TABLE task (
 	PRIMARY KEY (task_id)
 );
 
+//task_status
+//1-->not finish 
+//2-->finish
+//3-->delete
+
 CREATE INDEX IDX_task_create_time on task(task_create_time);
 
 
