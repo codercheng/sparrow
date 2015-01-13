@@ -29,6 +29,7 @@
 #include "util.h"
 #include "min_heap.h"
 #include "cJSON.h"
+#include "picohttpparser.h"
 
 char *work_dir;
 
@@ -225,11 +226,29 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	int read_complete = 0;
 
 	int nread = 0;
-
+	
+	////////////////////////////////////////////////////////////////////
+	char *method, *path_t;
+	int pret, minor_version;
+	struct phr_header headers[100];
+	size_t  method_len, path_len, num_headers;
+//	ssize_t rret;
+	////////////////////////////////////////////////////////////////////
+	
 	while(1) {
 		nread = read(sock, buf+fd_records[sock].read_pos, MAXBUFSIZE - fd_records[sock].read_pos);
 		if(nread > 0) {
+			read_complete =(strstr(buf+fd_records[sock].read_pos, "\n\n") != 0) 
+			||(strstr(buf+fd_records[sock].read_pos, "\r\n\r\n") != 0);
+			
 			fd_records[sock].read_pos += nread;
+			//判断是否读取完 \r\n\r\n
+			if(read_complete) {
+				break;
+			}
+			//问题又来了，如果对方迟迟都没有发\r\n\r\n那么岂不是要一直等下去？
+			//加一个定时器
+			//break;
 		}
 		else if(nread == -1) {
 			if(errno != EAGAIN)	{
@@ -238,11 +257,14 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				} else {
 					fprintf(stderr, "read http err, %s\n", strerror(errno));
 				}
+				//是否需要处理timer呢????
 				ev_unregister(loop, sock);
 				close(sock);
 				return NULL;
 			} else {
-				break;//read complete
+				//这个地方应该是返回，等下一次触发继续读
+				return NULL;
+				//break;//read complete
 			}
 		} else if(nread == 0) {
 			//client quit
@@ -258,10 +280,32 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		}
 	}
 
+	
 	int header_length = fd_records[sock].read_pos;
 	fd_records[sock].buf[header_length] = '\0';
-
-	read_complete =(strstr(buf, "\n\n") != 0) ||(strstr(buf, "\r\n\r\n") != 0);
+	/////////////////////////////////////////////////////////////////////
+	num_headers = sizeof(headers) / sizeof(headers[0]);
+	pret = phr_parse_request(buf, header_length, &method, &method_len, &path_t, &path_len,
+                             &minor_version, headers, &num_headers, 0);
+	if(pret < 0) {
+		ev_unregister(loop, sock);
+		close(sock);
+		return NULL;
+	}
+	printf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	printf("request is %d bytes long\n", pret);
+	printf("method is %.*s\n", (int)method_len, method);
+	printf("path is %.*s\n", (int)path_len, path_t);
+	printf("HTTP version is 1.%d\n", minor_version);
+	printf("headers:\n");
+	int i;
+	for (i = 0; i != num_headers; ++i) {
+	    printf("%.*s: %.*s\n", (int)headers[i].name_len, headers[i].name,
+	           (int)headers[i].value_len, headers[i].value);
+	}
+	printf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	///////////////////////////////////////////////////////////////////////
+	//read_complete =(strstr(buf, "\n\n") != 0) ||(strstr(buf, "\r\n\r\n") != 0);
 
 	if(read_complete) {
 		if(strncmp(str_2_lower(buf, 3),"get", 3)) {
