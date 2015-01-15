@@ -123,12 +123,21 @@ int read_config(config_t *conf) {
 			} else if(IS_EQUAL(key, "use_tcp_cork")) {
 				conf->use_tcp_cork = atoi(value);
 			} else if(IS_EQUAL(key, "root_dir")) {
+				if(strcmp(value, "") == 0)
+					continue;
 				strcpy(conf->root_dir, value);
-				int len = strlen(conf->root_dir);	
-				if(conf->root_dir[len-1] != '/') {
-					conf->root_dir[len] = '/';
-					conf->root_dir[len+1] = '\0';
+				int len = strlen(conf->root_dir);
+				//路径不需要加 '/'
+				if(len != 1) {
+					if(conf->root_dir[len-1] == '/') {
+						conf->root_dir[len-1] = '\0';						
+					}
 				}
+				// if(conf->root_dir[len-1] != '/') {
+				// 	conf->root_dir[len] = '/';
+				// 	conf->root_dir[len+1] = '\0';
+				// }
+				
 			} else if(IS_EQUAL(key, "cache_control_max_age")) {
 				conf->cache_control_max_age = atoi(value);
 			} else if(IS_EQUAL(key, "log_time_out")) {
