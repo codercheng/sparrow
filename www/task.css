@@ -1,0 +1,54 @@
+body {TEXT-ALIGN: center;font-family: Georgia;}
+ a {text-decoration:none;}
+ .task{
+    border: 2px solid #FF4040;
+    width:240px;
+    margin:10px;
+    padding:3px;
+    height: 250px;
+    overflow: auto;
+    border-radius: 10px;
+    float: left;
+    text-align :center;
+     
+  }
+
+.task div{
+  display: none;
+  margin-left: 55px;
+  margin-top:40px;
+ /* margin-top: 80px;*/
+}
+.m_over {
+  border: 4px solid #428BCA;
+}
+
+.label {
+  margin-top:2px;
+  margin-bottom: 10px;
+  /*float: left;*/
+}
+
+p {
+  margin-top: 4px;
+  color: grey;
+}
+
+
+hr {
+  border: 1px dashed #428BCA;
+  margin-top: 5px;
+  margin-bottom: 2px;
+}
+.task hr {
+  border: 1px dashed #FF4040;
+  margin-top: 5px;
+  margin-bottom: 2px;
+}
+.finish {
+   border: 1px solid grey;
+}
+
+.btn-warning{
+  border-radius: 20%;
+}

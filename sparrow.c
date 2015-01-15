@@ -46,7 +46,7 @@ unsigned long long int round_robin_num = 0;
 static 
 int str_equal(char* str, size_t len, const char* t)
 {
-  return strlen(t) == len && memcmp(str_2_lower(str, len), t, len) == 0;
+  return memcmp(str_2_lower(str, len), t, len) == 0;
 }
 
 int main()
@@ -124,15 +124,21 @@ void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
 }
 
 static
-void safe_close(ev_loop_t *loop, int sockfd) {
+void delete_timer(ev_loop_t *loop, int sockfd) {
 	ev_timer_t * timer = (ev_timer_t *)(fd_records[sockfd].timer_ptr);
 	if(timer != NULL) {
 		timer->cb = NULL;
-		dbg_printf("safe close, set cd = NULL!");
+		dbg_printf("safe close, set cb = NULL!");
 	}
+}
+
+static
+void safe_close(ev_loop_t *loop, int sockfd) {
+	delete_timer(loop, sockfd);
 	ev_unregister(loop, sockfd);
 	close(sockfd);
 }
+
 
 void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 	if(sock > conf.max_conn) {
@@ -205,22 +211,19 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 }
 void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	if(sock > conf.max_conn) {
-		ev_unregister(loop, sock);
-		close(sock);
+		safe_close(loop, sock);
 		return NULL;
 	}
 
 	char *buf = fd_records[sock].buf;
-	int read_complete = 0;
+	int read_complete = 0; /*判断是否读取完 \r\n\r\n*/
 
-	int nread = 0;
-	
 	////////////////////////////////////////////////////////////////////
 	const char *method, *path;
 	int pret, minor_version;
 	struct phr_header headers[100];
 	size_t  method_len, path_len, num_headers;
-//	ssize_t rret;
+	ssize_t nread;
 	////////////////////////////////////////////////////////////////////
 	
 	while(1) {
@@ -254,7 +257,6 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				//break;//read complete
 			}
 		} else if(nread == 0) {
-			//client quit
 			dbg_printf("client quit!");
 			safe_close(loop, sock);
 			return NULL;
@@ -264,15 +266,15 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	
 	int header_length = fd_records[sock].read_pos;
 	fd_records[sock].buf[header_length] = '\0';
-	/////////////////////////////////////////////////////////////////////
+	
 	num_headers = sizeof(headers) / sizeof(headers[0]);
 	pret = phr_parse_request(buf, header_length, &method, &method_len, &path, &path_len,
                              &minor_version, headers, &num_headers, 0);
 	if(pret < 0) {
-		ev_unregister(loop, sock);
-		close(sock);
+		safe_close(loop, sock);
 		return NULL;
 	}
+#ifdef _DEBUG
 	printf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 	printf("request is %d bytes long\n", pret);
 	printf("method is %.*s\n", (int)method_len, method);
@@ -284,34 +286,20 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	    printf("%.*s: %.*s\n", (int)headers[i].name_len, headers[i].name,
 	           (int)headers[i].value_len, headers[i].value);
 	}
-	///////////////////////////////////////////////////////////////////////
-	//read_complete =(strstr(buf, "\n\n") != 0) ||(strstr(buf, "\r\n\r\n") != 0);
+#endif
 
 	if(read_complete) {
-		// if(strncmp(str_2_lower(buf, 3),"get", 3)) {
-		// 	ev_unregister(loop, sock);
-		// 	close(sock);
-		// 	return NULL;
-		// }
-	
 		//目前暂时只支持Get，排除非GET外的其他请求
 		if(!str_equal(method, method_len, "get")) {
 			safe_close(loop, sock);
 			return NULL;
 		}
-		////////////////////////////////////////////////////////////
-		///               http parse(tmp)
-		////////////////////////////////////////////////////////////
-		// int index;
-		// for(index=0; index<strlen(buf); index++) {
-		// 	buf[index] = tolower(buf[index]);
-		// }
-		// if(strstr(buf, "keep-alive")) {
-		// 	fd_records[sock].keep_alive = 1;
-		// 	printf("keep_alive\n");
-		// }
 		
-		//处理Keep-alive
+		//the last modified time of file cached in browser side
+		const char *last_mtime = NULL;
+		size_t last_mtime_len = 0;
+		
+		//处理Keep-alive和modified time
 		for (i = 0; i != num_headers; ++i) {
 		    if (str_equal(headers[i].name, headers[i].name_len, "connection")  &&
 		       	str_equal(headers[i].value, headers[i].value_len, "keep-alive")) {
@@ -319,29 +307,12 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		    	fd_records[sock].keep_alive = 1;
 		    	dbg_printf("keep_alive connection!");
 		    }
+		    if (str_equal(headers[i].name, headers[i].name_len, "if-modified-since")) {
+		    	last_mtime = headers[i].value;
+		    	last_mtime_len = headers[i].value_len;
+		    	dbg_printf("find last_modified_time!");
+		    }
 		}
-		////////////////////////////////////////////////////////////
-		// char *path_end = strchr(buf+4, ' ');
-		// int len = path_end - buf - 4 -1;
-
-		// char path[1024+1];
-		// memset(path, 0, sizeof(path));
-		// if(len > 1024)
-		// 		len = 1024;
-		
-		// strncpy(path, buf+1+4, len);
-		// path[len] = '\0';        //can not forget
-		
-		
-		
-		//defualt home page
-		// if(strcmp(path, "/") == 0) {
-		// 	sprintf(path, "%s", conf.def_home_page);
-		// } else {
-		// 	/*decode, 解决url中包含中文被转码的问题*/
-		// 	url_decode(path, strlen(path));
-		// }
-		//
 		
 		
 		char *prefix = work_dir;
@@ -353,26 +324,34 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		} else {
 			sprintf(filename, "%s%.*s", prefix, (int)path_len, path);
 		}
-		printf("prefix:%s\n", prefix);
-		printf("||||fileFullPath:%s||||\n", filename);
-		safe_close(loop, sock);
-		return NULL;
-		//strncpy(filename, prefix, strlen(prefix));
-		//strncpy(filename+strlen(prefix), path, path_len);
-		
-		
+#ifdef _DEBUG
+		char dbg_msg[512];
+		memset(dbg_msg, 0, sizeof(dbg_msg));
+		sprintf(dbg_msg, "prefix:%s", prefix);
+
+		dbg_printf(dbg_msg);
+
+		memset(dbg_msg, 0, sizeof(dbg_msg));
+		sprintf(dbg_msg, "fileFullPath:%s", filename);
+		dbg_printf(dbg_msg);
+#endif
 		/***********************************************************************
 		 *decode, 解决url中包含中文/特殊字符"&%.."被转码的问题
 		 *这一步可以加到decode特定path的内容的时候用到
 		 * 直接加到http_parse_path()中去
 		 **********************************************************************/
-		url_decode(path, strlen(path));
+		//url_decode(path, path_len);
 		
 		
-
-				
 		struct stat filestat;
 		time_t last_modified_time;
+
+		/***********************************************************************
+		 *decode, 解决url中包含中文/特殊字符"&%.."被转码的问题
+		 *这一步可以加到decode特定path的内容的时候用到
+		 * 直接加到http_parse_path()中去
+		 **********************************************************************/
+		url_decode(filename, strlen(filename));
 		int s = lstat(filename, &filestat);
 		if(-1 == s)	{
 			fd_records[sock].http_code = 404;
@@ -400,22 +379,25 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				safe_close(loop, sock);
 				return NULL;
 			}
-
+			
 			last_modified_time = filestat.st_mtime;
 			//process 304 not modified
-			//lower case
-			char *time_begin = strstr(fd_records[sock].buf, "if-modified-since:");
-			if(time_begin != NULL) {
-				time_begin = time_begin + sizeof("if-modified-since:");
-				char *time_end = strchr(time_begin, '\n');
-				
-				if(strncmp(str_2_lower(ctime(&last_modified_time), strlen(ctime(&last_modified_time))), time_begin, time_end - time_begin -1) == 0) {
+			if(last_mtime != NULL) {
+				/*先转lower case*/
+				char *file_last_mtime = str_2_lower(ctime(&last_modified_time), strlen(ctime(&last_modified_time)));
+#ifdef _DEBUG
+				//ctime() end with '\n\0';
+				printf("file_last_mtime::%.*s::\n", last_mtime_len, file_last_mtime);
+				printf("reqt_last_mtime::%.*s::\n", last_mtime_len, last_mtime);
+#endif	
+				if(str_equal(last_mtime, last_mtime_len, file_last_mtime)) {
 					fd_records[sock].http_code = 304;
+					dbg_printf("304 not modified!");
 				}
 			}
 		}
 
-		char content_type[128];
+		char content_type[64];
 		memset(content_type, 0, sizeof(content_type));
 
 		if(fd_records[sock].http_code != 304) {
@@ -483,22 +465,24 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		fd_records[sock].buf[header_length] = '\0';
 
 		int ret;
-		// ret = ev_stop(loop, sock, EV_READ);
-		// if(ret == -1) {
-		// 	ev_unregister(loop, sock);
-		// 	close(sock);
-		// 	return NULL;
-		// }
+		//////////////////////////////////////////////////////////////
+		// stop the read
+		// thus, not support the http pipeline... 
+		/////////////////////////////////////////////////////////////
+		ret = ev_stop(loop, sock, EV_READ);
+		if(ret == -1) {
+			safe_close(loop, sock);
+			return NULL;
+		}
+
 		ret = ev_register(loop, sock, EV_WRITE, write_http_header);
 		if(ret == -1) {
-			//printf("ev register err in read_http()\n");
 			if(conf.log_enable) {
 				log_error("ev register err in read_http()\n");
 			} else {
 				fprintf(stderr,"ev register err in read_http()\n");
 			}
-			//ev_unregister(loop, sock);
-			//close(sock);
+			delete_timer(loop, sock);
 			return NULL;
 		}
 	}
@@ -513,8 +497,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 	if(sockfd > conf.max_conn) {
-		ev_unregister(loop, sockfd);
-		close(sockfd);
+		safe_close(loop, sockfd);
 		return NULL;
 	}
 
@@ -536,9 +519,7 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 				} else {
 					fprintf(stderr,"%s\n", strerror(errno));
 				}
-				ev_unregister(loop, sockfd);				
-				
-				close(sockfd);
+				safe_close(loop, sockfd);
 				return NULL;
 			}
 			break;
@@ -548,23 +529,12 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 			fd_records[sockfd].write_pos = 0;
 			
 			if(fd_records[sockfd].http_code == 304) {
-				ev_timer_t *timer = (ev_timer_t *)(fd_records[sockfd].timer_ptr);
-				if(timer != NULL) {
-					timer->cb = NULL;
-				}
-				ev_unregister(loop, sockfd);
-				close(sockfd);
+				safe_close(loop, sockfd);
 				return NULL;
 			}
 			if(fd_records[sockfd].http_code == 2048) {
-				ev_timer_t * timer = (ev_timer_t *)(fd_records[sockfd].timer_ptr);
-				if(timer != NULL) {
-					timer->cb = NULL;
-					printf("set cb = null\n");
-				}
-				ev_unregister(loop, sockfd);
-				close(sockfd);
-				printf("==============2048===============\n");
+				safe_close(loop, sockfd);
+				dbg_printf("==============2048===============\n");
 				return NULL;
 			}
 
@@ -577,8 +547,7 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 					} else {
 						fprintf(stderr,"ev register err in write_http_header1()\n");
 					}
-					//ev_unregister(loop, sockfd);
-					//close(sockfd);
+					delete_timer(loop, sockfd);
 					return NULL;
 				}
 			}
@@ -591,8 +560,7 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 					} else {
 						fprintf(stderr,"err when making dir html\n");
 					}
-					ev_unregister(loop, sockfd);
-					close(sockfd);
+					safe_close(loop, sockfd);
 					return NULL;
 				}
 				int ret = ev_register(loop, sockfd, EV_WRITE, write_dir_html);
@@ -602,8 +570,7 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 					} else {
 						fprintf(stderr,"ev register err in write_http_header2()\n");
 					}
-					//ev_unregister(loop, sockfd);
-					//close(sockfd);
+					delete_timer(loop, sockfd);
 					return NULL;
 				}
 			}
@@ -615,8 +582,7 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 
 void *write_dir_html(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	if(sockfd > conf.max_conn) {
-		ev_unregister(loop, sockfd);
-		close(sockfd);
+		safe_close(loop, sockfd);
 		return NULL;
 	}
 
@@ -636,8 +602,7 @@ void *write_dir_html(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 				} else {
 					fprintf(stderr,"write dir html%s\n", strerror(errno));
 				}
-                ev_unregister(loop, sockfd);
-				close(sockfd);
+                safe_close(loop, sockfd);
 				return NULL;
 			}
 			break;
@@ -645,8 +610,7 @@ void *write_dir_html(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 
 		if(fd_records[sockfd].write_pos == strlen(fd_records[sockfd].buf)) {
 			fd_records[sockfd].write_pos = 0;
-			ev_unregister(loop, sockfd);
-			close(sockfd);
+			safe_close(loop, sockfd);
 			return NULL;
 		}
 	}
@@ -672,11 +636,9 @@ int process_dir_html(char *path, int sockfd) {
 
 void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	if(sockfd > conf.max_conn) {
-		ev_unregister(loop, sockfd);
-		close(sockfd);
+		safe_close(loop, sockfd);
 		return NULL;
 	}
-	//sleep(50);
 	int ffd = fd_records[sockfd].ffd;
 	while(1) {
 	    off_t offset = fd_records[sockfd].read_pos;
@@ -689,15 +651,12 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 				} else {
 					fprintf(stderr,"sendfile:%s\n", strerror(errno));
 				}
-		   		ev_unregister(loop, sockfd);
-		   		close(sockfd);
+		   		safe_close(loop, sockfd);
 		   		close(ffd);
 
 				return NULL;
 			} else {
 				// 写入到缓冲区已满了
-				//return NULL;
-				//printf("w_full\n");
 				break;
 			}
 	    }
@@ -707,16 +666,19 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	   		int flag = 0;
 	   		if(timer != NULL) {
 	   			timer->cb = NULL;
-//	   			printf("--------(set cb = null)-------\n");
 	   			flag = 1;
 	   		}
+	   		/*****************************************************************
+	   		 * 明显的一个需要改进的地方，不需要每次都先unregister 然后在重新注册，
+	   		 * 不过改动容易出问题，先保留
+	   		 *****************************************************************/
 	   		ev_unregister(loop, sockfd);
 	  		if(keep_alive) {
 	  			ev_register(loop, sockfd, EV_READ, read_http);
-	  			if(/*timer == NULL*/!flag) {
+	  			if(!flag) {
 	  				add_timer(loop, 40, process_timeout, 0, 0, (void*)sockfd);
 	  			} else {
-//	  				printf("-----=-=-=-=-=-=-=-=-=-==---resue\n");
+	  				dbg_printf("reuse sockfd!");
 	  				add_timer(loop, 40, process_timeout, 0, 0, (void*)sockfd);
 	  			}
 	   		}
