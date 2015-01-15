@@ -1,4 +1,4 @@
-OBJS = sparrow.o thread_manage.o file.o ev_loop.o config.o async_log.o url.o min_heap.o cJSON.o
+OBJS = sparrow.o thread_manage.o file.o ev_loop.o config.o async_log.o url.o min_heap.o cJSON.o picohttpparser.o
 CC = gcc
 DEBUG = -g
 CFLAGS = -Wall -c $(DEBUG)
@@ -7,7 +7,7 @@ LFLAGS = -Wall -pthread  $(DEBUG)
 sparrow: $(OBJS)
 	$(CC) $(LFLAGS) $(OBJS) -lrt -lm -o sparrow
 
-sparrow.o: sparrow.c sparrow.h global.h  ev_loop.h async_log.h thread_manage.h config.h file.h mime.h url.h min_heap.h cJSON.h
+sparrow.o: sparrow.c sparrow.h global.h  ev_loop.h async_log.h thread_manage.h config.h file.h mime.h url.h min_heap.h cJSON.h picohttpparser.h
 	$(CC) $(CFLAGS)  sparrow.c
 
 thread_manage.o: thread_manage.c thread_manage.h sparrow.h global.h async_log.h ev_loop.h  config.h file.h mime.h
@@ -33,6 +33,8 @@ min_heap.o: min_heap.c min_heap.h ev_loop.h
 
 cJSON.o: cJSON.c cJSON.h
 	$(CC) $(CFLAGS) cJSON.c
+picohttpparser.o: picohttpparser.c picohttpparser.h
+	$(CC) $(CFLAGS) picohttpparser.c
 
 clean:
 	rm *.o sparrow

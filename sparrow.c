@@ -29,6 +29,9 @@
 #include "util.h"
 #include "min_heap.h"
 #include "cJSON.h"
+#include "picohttpparser.h"
+
+#define _DEBUG
 
 char *work_dir;
 
@@ -39,6 +42,12 @@ char dir_first_part[1024];
 char dir_second_part[512];
 
 unsigned long long int round_robin_num = 0;
+
+static 
+int str_equal(char* str, size_t len, const char* t)
+{
+  return strlen(t) == len && memcmp(str_2_lower(str, len), t, len) == 0;
+}
 
 int main()
 {
@@ -98,51 +107,31 @@ int main()
 	return 0;
 }
 
+
+//for debug
+void dbg_printf(const char *str) {
+#ifdef _DEBUG
+		printf("[%s:%d] %s\n", __FILE__, __LINE__, str);
+#endif
+}
+
 static 
 void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
-   //	time_t t;
-//	t = time(NULL);
-//	printf("11111111------hello:%ld, i am %d\n", t, timer->fd);
-	// char test[] = "{ \"firstName\":\"Bill\" , \"lastName\":\"Gates\" }";
-	// int n = write(timer->fd, test, sizeof(test));
-	// printf("----------n:%d\n", n);
 	if(fd_records[timer->fd].active) {
-//		printf("timeout ev_unregister\n");
 		ev_unregister(loop, timer->fd);
 	}
 	close(timer->fd);
 }
-static 
-void process_timeout2(ev_loop_t *loop, ev_timer_t *timer) {
-	// time_t t;
-	// t = time(NULL);
 
-	// cJSON *root, *dir1;
-	// char *out;
-
-	// root = cJSON_CreateArray();
-	// cJSON_AddItemToArray(root,dir1=cJSON_CreateObject());
-	// cJSON_AddStringToObject(dir1,"name","simon");
-	// cJSON_AddNumberToObject(dir1,"age", rand()%100);
-	// out = cJSON_Print(root);
-	// cJSON_Delete(root);
-
-	// printf("================================\n");
-	// printf("%s\n", out);
-	// printf("================================\n");
-
-
-	// //printf("22222222--------hello:%ld, i am %d\n", t, timer->fd);
-	// //char test[] = "{\"firstName\":\"Bill\",\"lastName\":\"Gates\"};";
-	// int n = write(timer->fd, out, strlen(out));
-	// free(out);
-
-//	printf("--------+++++++++++++:timeout++++++++\n");
-	if(fd_records[timer->fd].active) {
-//		printf("timeout ev_unregister\n");
-		ev_unregister(loop, timer->fd);
+static
+void safe_close(ev_loop_t *loop, int sockfd) {
+	ev_timer_t * timer = (ev_timer_t *)(fd_records[sockfd].timer_ptr);
+	if(timer != NULL) {
+		timer->cb = NULL;
+		dbg_printf("safe close, set cd = NULL!");
 	}
-	close(timer->fd);
+	ev_unregister(loop, sockfd);
+	close(sockfd);
 }
 
 void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
@@ -225,11 +214,29 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	int read_complete = 0;
 
 	int nread = 0;
-
+	
+	////////////////////////////////////////////////////////////////////
+	const char *method, *path;
+	int pret, minor_version;
+	struct phr_header headers[100];
+	size_t  method_len, path_len, num_headers;
+//	ssize_t rret;
+	////////////////////////////////////////////////////////////////////
+	
 	while(1) {
 		nread = read(sock, buf+fd_records[sock].read_pos, MAXBUFSIZE - fd_records[sock].read_pos);
 		if(nread > 0) {
+			read_complete =(strstr(buf+fd_records[sock].read_pos, "\n\n") != 0) 
+			||(strstr(buf+fd_records[sock].read_pos, "\r\n\r\n") != 0);
+			
 			fd_records[sock].read_pos += nread;
+			//判断是否读取完 \r\n\r\n
+			if(read_complete) {
+				break;
+			}
+			//问题又来了，如果对方迟迟都没有发\r\n\r\n那么岂不是要一直等下去？
+			//加一个定时器
+			//break;
 		}
 		else if(nread == -1) {
 			if(errno != EAGAIN)	{
@@ -238,161 +245,130 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				} else {
 					fprintf(stderr, "read http err, %s\n", strerror(errno));
 				}
-				ev_unregister(loop, sock);
-				close(sock);
+				//是否需要处理timer呢????
+				safe_close(loop, sock);
 				return NULL;
 			} else {
-				break;//read complete
+				//这个地方应该是返回，等下一次触发继续读
+				return NULL;
+				//break;//read complete
 			}
 		} else if(nread == 0) {
 			//client quit
-			printf("client quit\n");
-			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
-			if(timer != NULL) {
-				timer->cb = NULL;
-				printf("set cb = null\n");
-			}
-			ev_unregister(loop, sock);
-			close(sock);
+			dbg_printf("client quit!");
+			safe_close(loop, sock);
 			return NULL;
 		}
 	}
 
+	
 	int header_length = fd_records[sock].read_pos;
 	fd_records[sock].buf[header_length] = '\0';
-
-	read_complete =(strstr(buf, "\n\n") != 0) ||(strstr(buf, "\r\n\r\n") != 0);
+	/////////////////////////////////////////////////////////////////////
+	num_headers = sizeof(headers) / sizeof(headers[0]);
+	pret = phr_parse_request(buf, header_length, &method, &method_len, &path, &path_len,
+                             &minor_version, headers, &num_headers, 0);
+	if(pret < 0) {
+		ev_unregister(loop, sock);
+		close(sock);
+		return NULL;
+	}
+	printf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	printf("request is %d bytes long\n", pret);
+	printf("method is %.*s\n", (int)method_len, method);
+	printf("path is %.*s\n", (int)path_len, path);
+	printf("HTTP version is 1.%d\n", minor_version);
+	printf("headers:\n");
+	int i;
+	for (i = 0; i != num_headers; ++i) {
+	    printf("%.*s: %.*s\n", (int)headers[i].name_len, headers[i].name,
+	           (int)headers[i].value_len, headers[i].value);
+	}
+	///////////////////////////////////////////////////////////////////////
+	//read_complete =(strstr(buf, "\n\n") != 0) ||(strstr(buf, "\r\n\r\n") != 0);
 
 	if(read_complete) {
-		if(strncmp(str_2_lower(buf, 3),"get", 3)) {
-			ev_unregister(loop, sock);
-			close(sock);
+		// if(strncmp(str_2_lower(buf, 3),"get", 3)) {
+		// 	ev_unregister(loop, sock);
+		// 	close(sock);
+		// 	return NULL;
+		// }
+	
+		//目前暂时只支持Get，排除非GET外的其他请求
+		if(!str_equal(method, method_len, "get")) {
+			safe_close(loop, sock);
 			return NULL;
 		}
 		////////////////////////////////////////////////////////////
 		///               http parse(tmp)
 		////////////////////////////////////////////////////////////
-		int index;
-		for(index=0; index<strlen(buf); index++) {
-			buf[index] = tolower(buf[index]);
-		}
-		if(strstr(buf, "keep-alive")) {
-			fd_records[sock].keep_alive = 1;
-			printf("keep_alive\n");
-		}
-
-		////////////////////////////////////////////////////////////
-		char *path_end = strchr(buf+4, ' ');
-		int len = path_end - buf - 4 -1;
-
-		char path[1024+1];
-		memset(path, 0, sizeof(path));
-		if(len > 1024)
-				len = 1024;
+		// int index;
+		// for(index=0; index<strlen(buf); index++) {
+		// 	buf[index] = tolower(buf[index]);
+		// }
+		// if(strstr(buf, "keep-alive")) {
+		// 	fd_records[sock].keep_alive = 1;
+		// 	printf("keep_alive\n");
+		// }
 		
-		strncpy(path, buf+1+4, len);
-		path[len] = '\0';        //can not forget
+		//处理Keep-alive
+		for (i = 0; i != num_headers; ++i) {
+		    if (str_equal(headers[i].name, headers[i].name_len, "connection")  &&
+		       	str_equal(headers[i].value, headers[i].value_len, "keep-alive")) {
+		    
+		    	fd_records[sock].keep_alive = 1;
+		    	dbg_printf("keep_alive connection!");
+		    }
+		}
+		////////////////////////////////////////////////////////////
+		// char *path_end = strchr(buf+4, ' ');
+		// int len = path_end - buf - 4 -1;
+
+		// char path[1024+1];
+		// memset(path, 0, sizeof(path));
+		// if(len > 1024)
+		// 		len = 1024;
+		
+		// strncpy(path, buf+1+4, len);
+		// path[len] = '\0';        //can not forget
+		
+		
 		
 		//defualt home page
-		if(strcmp(path, "") == 0) {
-			sprintf(path, "/%s", conf.def_home_page);
-		} else {
-			/*decode, 解决url中包含中文被转码的问题*/
-			url_decode(path, strlen(path));
-		}
+		// if(strcmp(path, "/") == 0) {
+		// 	sprintf(path, "%s", conf.def_home_page);
+		// } else {
+		// 	/*decode, 解决url中包含中文被转码的问题*/
+		// 	url_decode(path, strlen(path));
+		// }
+		//
+		
 		
 		char *prefix = work_dir;
 		char filename[1024 + 1 + strlen(work_dir)];//full path
 		memset(filename, 0, sizeof(filename));
-		strncpy(filename, prefix, strlen(prefix));
-		strncpy(filename+strlen(prefix), path, strlen(path)+1);
-
-		//**************************************************************************
-		// Dynamic service entry
-		//**************************************************************************
-		//printf("path:%s-\n", path);
-		if(strncmp(path, "livechat", 8)==0 && 0) {
-			//stop the read
-			int ret;
-			ret = ev_stop(loop, sock, EV_READ);
-			if(ret == -1) {
-				ev_unregister(loop, sock);
-				close(sock);
-				return NULL;
-			}
-
-
-			printf("-------------live-chat-----------\n");
-			printf("sock:%d, path:%s-\n", sock, path);
-			//add_timer(loop, 40, process_timeout, 0, (void*)sock);
-			ev_timer_t *timer= (ev_timer_t *)fd_records[sock].timer_ptr;
-			if(timer == NULL) {
-  				add_timer(loop, 40, process_timeout2, 0, 1, (void*)sock);
-  			} else {
-  				printf("here---\n");
-  				timer->cb = NULL;
-  				add_timer(loop, 40, process_timeout2, 0, 1, (void*)sock);
-  			}
-
-			return NULL;
+		
+		if(memcmp(path, "/", path_len) == 0) {
+			sprintf(filename, "%s/%s", prefix, conf.def_home_page);
+		} else {
+			sprintf(filename, "%s%.*s", prefix, (int)path_len, path);
 		}
-		if(strncmp(path, "push", 4)==0 && 0) {
-			printf("--------------push---------------\n");
-			printf("sock:%d, path:%s-\n", sock, path);
-			char *p = strchr(path, '=');
-			if(p==NULL || p=='\0') {
-				return NULL;
-			}
-			p++;
-			if(strlen(p) > 256) {
-				p[strlen(p)] = '\0';
-			}
-			//char message[256];
-
-
-			cJSON *root;
-			char *out;
-
-			root = cJSON_CreateObject();
-			cJSON_AddStringToObject(root, "message", p);
-			out = cJSON_Print(root);
-			cJSON_Delete(root);
-
-			printf("================================\n");
-			printf("%s\n", out);
-			printf("================================\n");
-
-			int i;
-			ev_timer_t *tmp=NULL;
-			int buf_len = 0;
-			for(i=1; i<=loop->heap_size; i++) {
-				tmp = (ev_timer_t *)(loop->heap[i]);
-				if(tmp->cb != NULL && tmp->groupid == 1 && fd_records[tmp->fd].active) {
-					buf_len = sprintf(fd_records[tmp->fd].buf, "%s", out);
-					fd_records[tmp->fd].buf[buf_len] = '\0';
-					fd_records[tmp->fd].http_code = 2048;//push
-					printf("here when push...\n");
-					ev_register(loop, tmp->fd, EV_WRITE, write_http_header);
-				}
-			}
-			
-			//////////////////////
-			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
-			if(timer != NULL) {
-				timer->cb = NULL;
-				printf("set cb = null\n");
-			}
-			//int n = write(sock, out, strlen(out));
-			free(out);
-			//n("----------printf:%d\n", n);
-			if(fd_records[sock].active) {
-				printf("in push ev_unregister\n");
-				ev_unregister(loop, sock);
-			}
-			close(sock);
-			return NULL;
-		}
-		//**************************************************************************
+		printf("prefix:%s\n", prefix);
+		printf("||||fileFullPath:%s||||\n", filename);
+		safe_close(loop, sock);
+		return NULL;
+		//strncpy(filename, prefix, strlen(prefix));
+		//strncpy(filename+strlen(prefix), path, path_len);
+		
+		
+		/***********************************************************************
+		 *decode, 解决url中包含中文/特殊字符"&%.."被转码的问题
+		 *这一步可以加到decode特定path的内容的时候用到
+		 * 直接加到http_parse_path()中去
+		 **********************************************************************/
+		url_decode(path, strlen(path));
+		
+		
 
 				
 		struct stat filestat;
@@ -407,12 +383,11 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 
 		if(fd_records[sock].http_code == 404) {
-			strncpy(filename, prefix, strlen(prefix));
-			strncpy(filename+strlen(prefix), "404.html", strlen("404.html")+1);
+			memset(filename, 0, sizeof(filename));
+			sprintf(filename, "%s/%s", prefix, "404.html");
 			lstat(filename, &filestat);
 		}
 
-		
 		int fd = -1;
 		if(fd_records[sock].http_code != DIR_CODE) {
 			fd = open(filename, O_RDONLY);
@@ -422,8 +397,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				} else {
 					fprintf(stderr,"can not open file:%s\n", filename);
 				}
-				ev_unregister(loop, sock);
-				close(sock);
+				safe_close(loop, sock);
 				return NULL;
 			}
 
@@ -529,8 +503,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		}
 	}
 	else {
-		ev_unregister(loop, sock);
-		close(sock);
+		safe_close(loop, sock);
 		return NULL;	
 	}
 	return NULL;
