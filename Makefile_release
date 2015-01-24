@@ -1,11 +1,11 @@
 OBJS = sparrow.o thread_manage.o file.o ev_loop.o config.o async_log.o url.o min_heap.o cJSON.o picohttpparser.o
 CC = gcc
-DEBUG = -g
-CFLAGS = -Wall -c $(DEBUG)
-LFLAGS = -Wall -pthread  $(DEBUG)
 
-sparrow_main_d: $(OBJS)
-	$(CC) $(LFLAGS) $(OBJS) -lrt -lm -o sparrow_main_d
+CFLAGS = -Wall -c 
+LFLAGS = -Wall -pthread  
+
+sparrow_main_r: $(OBJS)
+	$(CC) $(LFLAGS) $(OBJS) -lrt -lm -o sparrow_main_r
 
 sparrow.o: sparrow.c sparrow.h global.h  ev_loop.h async_log.h thread_manage.h config.h file.h mime.h url.h min_heap.h cJSON.h picohttpparser.h
 	$(CC) $(CFLAGS)  sparrow.c

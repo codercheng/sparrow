@@ -31,7 +31,7 @@
 #include "cJSON.h"
 #include "picohttpparser.h"
 
-#define _DEBUG
+//#define _DEBUG
 
 char *work_dir;
 
@@ -141,11 +141,6 @@ void safe_close(ev_loop_t *loop, int sockfd) {
 
 
 void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
-	if(sock > conf.max_conn) {
-		ev_unregister(loop, sock);
-		close(sock);
-		return NULL;
-	}
 	struct sockaddr_in client_sock;
 	socklen_t len = sizeof(client_sock);
 	int conn_fd;
@@ -157,7 +152,6 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 			} else {
 				fprintf(stderr, "Warn: too many connections come, exceeds the maximum num of the configuration!\n");
 			}
-
 			close(conn_fd);
 			return NULL;
 		}
@@ -179,10 +173,10 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 		int nSendBuf= TCP_SEND_BUF;
 		setsockopt(conn_fd,SOL_SOCKET,SO_SNDBUF,(const char*)&nSendBuf,sizeof(int));
 		
-	    if(conf.use_tcp_cork) {
-	    	int on = 1;
-	    	setsockopt(sock, SOL_TCP, TCP_CORK, &on, sizeof(on));
-	    }
+	    // if(conf.use_tcp_cork) {
+	    // 	int on = 1;
+	    // 	setsockopt(sock, SOL_TCP, TCP_CORK, &on, sizeof(on));
+	    // }
 		int ret = ev_register(ev_loop_queue[(round_robin_num++)%conf.worker_thread_num/*rand()%conf.worker_thread_num*/], conn_fd, EV_READ, read_http);
 		if(ret == -1) {
 			if(conf.log_enable) {
@@ -274,6 +268,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		safe_close(loop, sock);
 		return NULL;
 	}
+	int i;
 #ifdef _DEBUG
 	printf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 	printf("request is %d bytes long\n", pret);
@@ -281,11 +276,25 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	printf("path is %.*s\n", (int)path_len, path);
 	printf("HTTP version is 1.%d\n", minor_version);
 	printf("headers:\n");
-	int i;
 	for (i = 0; i != num_headers; ++i) {
 	    printf("%.*s: %.*s\n", (int)headers[i].name_len, headers[i].name,
 	           (int)headers[i].value_len, headers[i].value);
 	}
+	log_info("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+#else
+
+	//log the info
+	log_info("+++++++++++++++++++++++ REQUEST START +++++++++++++++++++++\n");
+	log_info("request is %d bytes long\n", pret);
+	log_info("method is %.*s\n", (int)method_len, method);
+	log_info("path is %.*s\n", (int)path_len, path);
+	log_info("HTTP version is 1.%d\n", minor_version);
+	log_info("headers:\n");
+	for (i = 0; i != num_headers; ++i) {
+	    log_info("%.*s: %.*s\n", (int)headers[i].name_len, headers[i].name,
+	           (int)headers[i].value_len, headers[i].value);
+	}
+	log_info("++++++++++++++++++++++++ REQUEST END ++++++++++++++++++++++\n");
 #endif
 
 	if(read_complete) {
@@ -501,10 +510,10 @@ void *write_http_header(ev_loop_t *loop, int sockfd, EV_TYPE events){
 		return NULL;
 	}
 
-	if(conf.use_tcp_cork) {
-    	int on = 1;
-    	setsockopt(sockfd, SOL_TCP, TCP_CORK, &on, sizeof(on));
-    }
+	// if(conf.use_tcp_cork) {
+ //    	int on = 1;
+ //    	setsockopt(sockfd, SOL_TCP, TCP_CORK, &on, sizeof(on));
+ //    }
 	while(1) {
 		int nwrite;
 		nwrite = write(sockfd, fd_records[sockfd].buf+fd_records[sockfd].write_pos, strlen(fd_records[sockfd].buf)-fd_records[sockfd].write_pos);
@@ -586,10 +595,10 @@ void *write_dir_html(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 		return NULL;
 	}
 
-	if(conf.use_tcp_cork) {
-    	int on = 1;
-    	setsockopt(sockfd, SOL_TCP, TCP_CORK, &on, sizeof(on));
-    }
+	// if(conf.use_tcp_cork) {
+ //    	int on = 1;
+ //    	setsockopt(sockfd, SOL_TCP, TCP_CORK, &on, sizeof(on));
+ //    }
 	while(1) {
 		int nwrite;
 		nwrite = write(sockfd, fd_records[sockfd].buf+fd_records[sockfd].write_pos, strlen(fd_records[sockfd].buf)-fd_records[sockfd].write_pos);
