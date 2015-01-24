@@ -1,4 +1,4 @@
-var g_domain = 'http://127.0.0.1';//'http://chengshuguang.com';
+var g_domain = 'http://chengshuguang.com';//'http://chengshuguang.com';
 var g_port = '6868';
 
 

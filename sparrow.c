@@ -161,7 +161,7 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 		if(conf.log_enable) {
 			log_info("Got connection from ip:%s, port:%d, conn_fd:%d\n",inet_ntoa(client_sock.sin_addr),ntohs(client_sock.sin_port), conn_fd);
 		}else {
-			printf("ip:%s, conn_fd:%d\n", inet_ntoa(client_sock.sin_addr),conn_fd);
+			//printf("ip:%s, conn_fd:%d\n", inet_ntoa(client_sock.sin_addr),conn_fd);
 		}
 		int reuse = 1;
     	setsockopt(conn_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
@@ -280,22 +280,23 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	    printf("%.*s: %.*s\n", (int)headers[i].name_len, headers[i].name,
 	           (int)headers[i].value_len, headers[i].value);
 	}
-	log_info("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-#else
-
-	//log the info
-	log_info("+++++++++++++++++++++++ REQUEST START +++++++++++++++++++++\n");
-	log_info("request is %d bytes long\n", pret);
-	log_info("method is %.*s\n", (int)method_len, method);
-	log_info("path is %.*s\n", (int)path_len, path);
-	log_info("HTTP version is 1.%d\n", minor_version);
-	log_info("headers:\n");
-	for (i = 0; i != num_headers; ++i) {
-	    log_info("%.*s: %.*s\n", (int)headers[i].name_len, headers[i].name,
-	           (int)headers[i].value_len, headers[i].value);
-	}
-	log_info("++++++++++++++++++++++++ REQUEST END ++++++++++++++++++++++\n");
+	printf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 #endif
+
+	if(conf.log_enable) {
+		//log the info
+		log_info("+++++++++++++++++++++++ REQUEST START +++++++++++++++++++++\n");
+		log_info("request is %d bytes long\n", pret);
+		log_info("method is %.*s\n", (int)method_len, method);
+		log_info("path is %.*s\n", (int)path_len, path);
+		log_info("HTTP version is 1.%d\n", minor_version);
+		log_info("headers:\n");
+		for (i = 0; i != num_headers; ++i) {
+		    log_info("%.*s: %.*s\n", (int)headers[i].name_len, headers[i].name,
+		           (int)headers[i].value_len, headers[i].value);
+		}
+		log_info("++++++++++++++++++++++++ REQUEST END ++++++++++++++++++++++\n");
+	}
 
 	if(read_complete) {
 		//目前暂时只支持Get，排除非GET外的其他请求
