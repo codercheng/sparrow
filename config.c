@@ -29,13 +29,13 @@ config_t conf = {
 static
 char * trim_left(char *str) {
 	char *p;
-	if(str == NULL)
+	if (str == NULL)
 		return NULL;
 	p = str;
-	while(*p == ' ' && *p != '\0') {
+	while (*p == ' ' && *p != '\0') {
 		++p;
 	}
-	return memmove(str, p, strlen(p)+1);
+	return memmove(str, p, strlen(p) + 1);
 }
 
 /**
@@ -44,14 +44,15 @@ char * trim_left(char *str) {
 static
 char * trim_right(char *str) {
 	int len;
-	if(str == NULL)
+	if (str == NULL)
 		return NULL;
 
 	len = strlen(str);
-	while(len) {
-		if(*(str+len-1) == ' ') {
-			*(str+len-1) = '\0';
-		} else {
+	while (len) {
+		if (*(str + len - 1) == ' ') {
+			*(str + len - 1) = '\0';
+		}
+		else {
 			break;
 		}
 		len--;
@@ -68,22 +69,22 @@ int get_kv(char *line, char **key, char **value) {
 	char *t;
 	trim_left(line);
 	p = strchr(line, '=');
-	if(p == NULL) {
+	if (p == NULL) {
 		fprintf(stderr, "BAD FORMAT:%s\n", line);
 		return -1;
 	}
 	*key = line;
-	*value = p+1;
+	*value = p + 1;
 	*p = '\0';
 	trim_right(*key);
-	
+
 
 	//remove the '\n' at the end of the line
 	t = strrchr(*value, '\n');
-	if(t != NULL)
+	if (t != NULL)
 		*t = '\0';
 	t = strrchr(*value, '\r');
-	if(t!= NULL)
+	if (t != NULL)
 		*t = '\0';
 	trim_left(*value);
 	trim_right(*value);
@@ -96,67 +97,79 @@ int get_kv(char *line, char **key, char **value) {
 int read_config(config_t *conf) {
 	char config_line[512];
 	FILE *fp = fopen(CONFIG_FILE_PATH, "r");
-	if(fp == NULL) {
+	if (fp == NULL) {
 		fprintf(stderr, "Can not open config file:%s\n", strerror(errno));
 		return -1;
 	}
-	
-	while(!feof(fp)) {
+
+	while (!feof(fp)) {
 		int ret;
 		char *key = NULL;
 		char *value = NULL;
 		memset(config_line, 0, sizeof(config_line));
 		fgets(config_line, 512, fp);
-		
+
 		trim_left(config_line);
-		if(config_line[0] == '#' || config_line[0] == '\n'|| config_line[0] == '\r' || strcmp(config_line, "") == 0)
+		if (config_line[0] == '#' || config_line[0] == '\n' || config_line[0] == '\r' || strcmp(config_line, "") == 0)
 			continue;
-		
+
 		ret = get_kv(config_line, &key, &value);
-		if(ret != -1) {
-			if(IS_EQUAL(key, "listen_port")) {
+		if (ret != -1) {
+			if (IS_EQUAL(key, "listen_port")) {
 				conf->listen_port = atoi(value);
-			} else if(IS_EQUAL(key, "max_conn")) {
+			}
+			else if (IS_EQUAL(key, "max_conn")) {
 				conf->max_conn = atoi(value);
-			} else if(IS_EQUAL(key, "use_epoll_et")) {
+			}
+			else if (IS_EQUAL(key, "use_epoll_et")) {
 				conf->use_epoll_et = atoi(value);
-			} else if(IS_EQUAL(key, "use_tcp_cork")) {
+			}
+			else if (IS_EQUAL(key, "use_tcp_cork")) {
 				conf->use_tcp_cork = atoi(value);
-			} else if(IS_EQUAL(key, "root_dir")) {
-				if(strcmp(value, "") == 0)
+			}
+			else if (IS_EQUAL(key, "root_dir")) {
+				if (strcmp(value, "") == 0)
 					continue;
 				strcpy(conf->root_dir, value);
 				int len = strlen(conf->root_dir);
 				//路径不需要加 '/'
-				if(len != 1) {
-					if(conf->root_dir[len-1] == '/') {
-						conf->root_dir[len-1] = '\0';						
+				if (len != 1) {
+					if (conf->root_dir[len - 1] == '/') {
+						conf->root_dir[len - 1] = '\0';
 					}
 				}
 				// if(conf->root_dir[len-1] != '/') {
 				// 	conf->root_dir[len] = '/';
 				// 	conf->root_dir[len+1] = '\0';
 				// }
-				
-			} else if(IS_EQUAL(key, "cache_control_max_age")) {
+
+			}
+			else if (IS_EQUAL(key, "cache_control_max_age")) {
 				conf->cache_control_max_age = atoi(value);
-			} else if(IS_EQUAL(key, "log_time_out")) {
+			}
+			else if (IS_EQUAL(key, "log_time_out")) {
 				conf->log_time_out = atoi(value);
-			} else if(IS_EQUAL(key, "log_level")) {
+			}
+			else if (IS_EQUAL(key, "log_level")) {
 				conf->log_level = atoi(value);
-			} else if(IS_EQUAL(key, "worker_thread_num")) {
+			}
+			else if (IS_EQUAL(key, "worker_thread_num")) {
 				conf->worker_thread_num = atoi(value);
-			} else if(IS_EQUAL(key, "log_enable")) {
+			}
+			else if (IS_EQUAL(key, "log_enable")) {
 				conf->log_enable = atoi(value);
-			} else if(IS_EQUAL(key, "default_home_page")) {
+			}
+			else if (IS_EQUAL(key, "default_home_page")) {
 				strcpy(conf->def_home_page, value);
-			} else if(IS_EQUAL(key, "max_sub_item_num"))  {
+			}
+			else if (IS_EQUAL(key, "max_sub_item_num"))  {
 				conf->max_sub_item_num = atoi(value);
-			} else {
+			}
+			else {
 				continue;
 			}
 		}
-		
+
 	}
 	fclose(fp);
 	return 0;

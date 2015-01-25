@@ -30,35 +30,35 @@ extern "C"
 
 #define gettid() syscall(__NR_gettid)
 
-typedef struct log_buf {
-	char buf[MAX_BUF_SIZE];
-	int pos;
-}log_buf_t;
+	typedef struct log_buf {
+		char buf[MAX_BUF_SIZE];
+		int pos;
+	}log_buf_t;
 
 
-enum {
-	LOG_TRACE = 0,
-	LOG_DEBUG = 1,
-	LOG_INFO  = 2,
-	LOG_WARN  = 3,
-	LOG_ERROR = 4,
-	LOG_FATAL = 5
-};
+	enum {
+		LOG_TRACE = 0,
+		LOG_DEBUG = 1,
+		LOG_INFO = 2,
+		LOG_WARN = 3,
+		LOG_ERROR = 4,
+		LOG_FATAL = 5
+	};
 
-typedef struct time_info {
-	int day_num;
-	int hour;
-	int min;
-	int sec;
-	long int usec;
-}time_info_t;
+	typedef struct time_info {
+		int day_num;
+		int hour;
+		int min;
+		int sec;
+		long int usec;
+	}time_info_t;
 
 
-extern void log_write(const char *file, int line, uint8_t log_level, const char *format, ...);
-extern void set_time_out_sec(int second);
-extern void set_min_log_level(int log_level);
-extern void log_init(int second, int log_level);
-extern void log_destroy();
+	extern void log_write(const char *file, int line, uint8_t log_level, const char *format, ...);
+	extern void set_time_out_sec(int second);
+	extern void set_min_log_level(int log_level);
+	extern void log_init(int second, int log_level);
+	extern void log_destroy();
 
 
 #ifdef __cplusplus

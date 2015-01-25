@@ -4,7 +4,7 @@
  * @version v0.1
  * this program is an encapsulation of the EPOLL API which is frequently
  * used in backend systems based on linux.
- * it likes a simplified libev library which only supports the events 
+ * it likes a simplified libev library which only supports the events
  * on fds. timer and signal will be added later.
  ***********************************************************************/
 #ifndef _EV_LOOP_H
@@ -20,70 +20,70 @@ extern "C"
 #include <unistd.h>
 #include <sys/epoll.h>
 #include "global.h"
-//#include "min_heap.h"
+	//#include "min_heap.h"
 
 #define EV_TYPE __uint32_t
 
-/**
- * use when init fd_records in muti_threads environment
- */
+	/**
+	 * use when init fd_records in muti_threads environment
+	 */
 #define LOCK(Lock)  while(!__sync_bool_compare_and_swap(&Lock, 0, 1))
 #define UNLOCK(Lock) Lock = 0
 
-enum {
-	EV_READ = EPOLLIN,
-	EV_WRITE = EPOLLOUT
-};
+	enum {
+		EV_READ = EPOLLIN,
+		EV_WRITE = EPOLLOUT
+	};
 
 
-typedef struct ev_loop_t{
-	int epfd;
-	int maxevent;
-	int etmodel;
-	//fd_record_t *fd_records;
-	struct epoll_event *events;
+	typedef struct ev_loop_t{
+		int epfd;
+		int maxevent;
+		int etmodel;
+		//fd_record_t *fd_records;
+		struct epoll_event *events;
 
-	//timer
-	//struct ev_timer_t **heap;
-	void **heap;
-	int heap_size;
-	int heap_capacity;
-	int timer_fd;
-}ev_loop_t;
+		//timer
+		//struct ev_timer_t **heap;
+		void **heap;
+		int heap_size;
+		int heap_capacity;
+		int timer_fd;
+	}ev_loop_t;
 
-typedef void* (*cb_func_t) (ev_loop_t *loop, int fd, EV_TYPE events);
+	typedef void* (*cb_func_t) (ev_loop_t *loop, int fd, EV_TYPE events);
 
-typedef struct {
-	int active;
-	
-	EV_TYPE events;
-	cb_func_t cb_read;
-	cb_func_t cb_write; 	
+	typedef struct {
+		int active;
 
-	int ffd;
-	unsigned int write_pos;
-	unsigned int read_pos;
-	unsigned int total_len;
-	char buf[MAXBUFSIZE];
-	int http_code;
-	char path[256];
-	int keep_alive;
+		EV_TYPE events;
+		cb_func_t cb_read;
+		cb_func_t cb_write;
 
-	void* timer_ptr;
-} fd_record_t;
+		int ffd;
+		unsigned int write_pos;
+		unsigned int read_pos;
+		unsigned int total_len;
+		char buf[MAXBUFSIZE];
+		int http_code;
+		char path[256];
+		int keep_alive;
 
-//muti-threads share the fd_records
-fd_record_t *fd_records;
+		void* timer_ptr;
+	} fd_record_t;
 
-ev_loop_t *ev_create_loop(int maxevent, int et);
-int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb);
-int ev_unregister(ev_loop_t *loop, int fd);
-int ev_stop(ev_loop_t *loop, int fd, EV_TYPE events);
-int ev_run_loop(ev_loop_t *loop);
-void ev_clear(int fd);
+	//muti-threads share the fd_records
+	fd_record_t *fd_records;
 
-int tcp_server(int port);
-int setnonblocking(int fd);
+	ev_loop_t *ev_create_loop(int maxevent, int et);
+	int ev_register(ev_loop_t*loop, int fd, EV_TYPE events, cb_func_t cb);
+	int ev_unregister(ev_loop_t *loop, int fd);
+	int ev_stop(ev_loop_t *loop, int fd, EV_TYPE events);
+	int ev_run_loop(ev_loop_t *loop);
+	void ev_clear(int fd);
+
+	int tcp_server(int port);
+	int setnonblocking(int fd);
 
 
 #ifdef __cplusplus
