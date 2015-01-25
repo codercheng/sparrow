@@ -58,7 +58,7 @@ void get_parent_path(char *path, char *parent) {
 	parent[p - parent + 1] = '\0';
 }
 
-int block_read(char *filename, char *buf, int max_size) {
+int block_read(const char *filename, char *buf, int max_size) {
 	int n = 0;
 	int fd = open(filename, O_RDONLY);
 	if(fd == -1) {
@@ -166,16 +166,6 @@ int dir_html_maker(char *buf, char *path) {
 		if(item_cnt >= max_item_num) {
 			break;
 		}
-		// if(S_ISDIR(s.st_mode)){
-		// 	ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"%s%s/\"><img src=\"/.res/dir.png\">&nbsp;%s</a></div>\n", \
-		// 					prefix, temp_path->d_name, temp_path->d_name);
-		// 	pos +=ret;
-		// }else if(S_ISREG(s.st_mode)){
-			
-		// 	ret = sprintf(buf+pos,"<div class=\"file\"><a href=\"%s%s\"><img src=\"/.res/file.ico\">&nbsp;%s</a></div>\n", \
-		// 					prefix, temp_path->d_name, temp_path->d_name);
-		// 	pos +=ret;
-		// }
 	}
 	closedir(dir);
 

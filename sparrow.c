@@ -31,8 +31,6 @@
 #include "cJSON.h"
 #include "picohttpparser.h"
 
-//#define _DEBUG
-
 char *work_dir;
 
 int listen_sock;
@@ -121,15 +119,6 @@ void process_timeout(ev_loop_t *loop, ev_timer_t *timer) {
 		ev_unregister(loop, timer->fd);
 	}
 	close(timer->fd);
-}
-
-static
-void delete_timer(ev_loop_t *loop, int sockfd) {
-	ev_timer_t * timer = (ev_timer_t *)(fd_records[sockfd].timer_ptr);
-	if(timer != NULL) {
-		timer->cb = NULL;
-		dbg_printf("safe close, set cb = NULL!");
-	}
 }
 
 static
@@ -276,7 +265,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	printf("path is %.*s\n", (int)path_len, path);
 	printf("HTTP version is 1.%d\n", minor_version);
 	printf("headers:\n");
-	for (i = 0; i != num_headers; ++i) {
+	for (i = 0; i != (int)num_headers; ++i) {
 	    printf("%.*s: %.*s\n", (int)headers[i].name_len, headers[i].name,
 	           (int)headers[i].value_len, headers[i].value);
 	}
@@ -291,7 +280,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		log_info("path is %.*s\n", (int)path_len, path);
 		log_info("HTTP version is 1.%d\n", minor_version);
 		log_info("headers:\n");
-		for (i = 0; i != num_headers; ++i) {
+		for (i = 0; i != (int)num_headers; ++i) {
 		    log_info("%.*s: %.*s\n", (int)headers[i].name_len, headers[i].name,
 		           (int)headers[i].value_len, headers[i].value);
 		}
@@ -300,7 +289,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 	if(read_complete) {
 		//目前暂时只支持Get，排除非GET外的其他请求
-		if(!str_equal(method, method_len, "get")) {
+		if(!str_equal((char *)method, method_len, "get")) {
 			safe_close(loop, sock);
 			return NULL;
 		}
@@ -310,29 +299,39 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		size_t last_mtime_len = 0;
 		
 		//处理Keep-alive和modified time
-		for (i = 0; i != num_headers; ++i) {
-		    if (str_equal(headers[i].name, headers[i].name_len, "connection")  &&
-		       	str_equal(headers[i].value, headers[i].value_len, "keep-alive")) {
+		for (i = 0; i != (int)num_headers; ++i) {
+		    if (str_equal((char *)headers[i].name, headers[i].name_len, "connection")  &&
+		       	str_equal((char *)headers[i].value, headers[i].value_len, "keep-alive")) {
 		    
 		    	fd_records[sock].keep_alive = 1;
 		    	dbg_printf("keep_alive connection!");
 		    }
-		    if (str_equal(headers[i].name, headers[i].name_len, "if-modified-since")) {
+		    if (str_equal((char *)headers[i].name, headers[i].name_len, "if-modified-since")) {
 		    	last_mtime = headers[i].value;
 		    	last_mtime_len = headers[i].value_len;
 		    	dbg_printf("find last_modified_time!");
 		    }
 		}
 		
-		
+		const char *action;
+   		int action_len;
+   		KV kvs[0]; // not used
+  		int  kvs_num = sizeof(kvs)/sizeof(kvs[0]);
+   		
+   		int p_ret = parse_get_path(path, path_len, &action, &action_len, kvs, &kvs_num);
+   		if (p_ret == -1) {
+   			safe_close(loop, sock);
+			return NULL;
+   		}
+
 		char *prefix = work_dir;
 		char filename[1024 + 1 + strlen(work_dir)];//full path
 		memset(filename, 0, sizeof(filename));
 		
-		if(memcmp(path, "/", path_len) == 0) {
+		if(memcmp(action, "/", action_len) == 0) {
 			sprintf(filename, "%s/%s", prefix, conf.def_home_page);
 		} else {
-			sprintf(filename, "%s%.*s", prefix, (int)path_len, path);
+			sprintf(filename, "%s%.*s", prefix, action_len, action);
 		}
 #ifdef _DEBUG
 		char dbg_msg[512];
@@ -400,7 +399,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				printf("file_last_mtime::%.*s::\n", last_mtime_len, file_last_mtime);
 				printf("reqt_last_mtime::%.*s::\n", last_mtime_len, last_mtime);
 #endif	
-				if(str_equal(last_mtime, last_mtime_len, file_last_mtime)) {
+				if(str_equal((char *)last_mtime, last_mtime_len, file_last_mtime)) {
 					fd_records[sock].http_code = 304;
 					dbg_printf("304 not modified!");
 				}
