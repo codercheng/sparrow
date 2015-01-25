@@ -166,16 +166,6 @@ int dir_html_maker(char *buf, char *path) {
 		if(item_cnt >= max_item_num) {
 			break;
 		}
-		// if(S_ISDIR(s.st_mode)){
-		// 	ret = sprintf(buf+pos,"<div class=\"dir\"><a href=\"%s%s/\"><img src=\"/.res/dir.png\">&nbsp;%s</a></div>\n", \
-		// 					prefix, temp_path->d_name, temp_path->d_name);
-		// 	pos +=ret;
-		// }else if(S_ISREG(s.st_mode)){
-			
-		// 	ret = sprintf(buf+pos,"<div class=\"file\"><a href=\"%s%s\"><img src=\"/.res/file.ico\">&nbsp;%s</a></div>\n", \
-		// 					prefix, temp_path->d_name, temp_path->d_name);
-		// 	pos +=ret;
-		// }
 	}
 	closedir(dir);
 

@@ -2,6 +2,7 @@
 #define _CONFIG_H
 
 #ifdef __cplusplus
+
 extern "C" 
 {
 #endif
@@ -15,7 +16,7 @@ extern "C"
 #define DEF_MAX_EVENT 1024
 #define DEF_USE_EPOLL_ET 1
 #define DEF_USE_TCP_CORK 1
-#define DEF_ROOT_DIR "./www/"
+#define DEF_ROOT_DIR "./www"
 
 #define DEF_CACHE_CONTROL_MAX_AGE 300
 

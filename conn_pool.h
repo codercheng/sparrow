@@ -7,8 +7,8 @@
 #include <string>
 
 #define HOST 		"localhost"
-#define USERNAME 	"simon"
-#define PASSWORD 	"135016"
+#define USERNAME 	"root"
+#define PASSWORD 	"110315"
 
 #define MAX_CONNPOOL_SIZE 	100
 #define INIT_CONNPOOL_SIZE 	10

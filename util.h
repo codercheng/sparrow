@@ -2,63 +2,77 @@
 #include <ctype.h>
 
 typedef struct {
-    char *key;
+    const char *key;
     int key_len;
-    char *value;
+    const char *value;
     int value_len;
 } KV;
 
-static
-char *checkValid(char *p) {
-	if(*p == '\0')
+static 
+const char * strnchr(const char *str, const char target, int n) {
+	if (str == NULL || n == 0) {
 		return NULL;
-	while(*(++p) != '\0') {
-		if(*p == '=') {
-			return NULL;
-		} else if(*p == '&') {
-			return p;
+	}
+	
+	int i;
+	for (i=0; i<n; i++) {
+		if(*(str+i) == target) {
+			return str+i;
 		}
 	}
-
-	return p;
+	return NULL;
 }
 
-int getKV(char *path, KV *kvs, int *kvs_num) {
-	char *b = strchr(path, '?');
-	int cnt = 0;
-	while(b != NULL && *b != '\0' && *(b+1) != '\0') {
-        if(*kvs_num < cnt) {/*tha array kvs' len is less than b*/
-            break;
-		}
 
-		char *p1 = b+1; //start
-		char *p2 = strchr(p1, '=');//'='
-        if(p2 == NULL) { //error
-            return -1;
-        }
-		char *p3 = strchr(p2, '&');
-		if(p3 == NULL) {/*end of the string*/
-			p3 = strchr(p2, '\0');
-		}
-		//check end
-		while(checkValid(p3) != NULL) {
-			p3 = checkValid(p3);
-		}
-		//printf("%.*s=%.*s\n", p2-p1, p1, p3-p2-1, p2+1);
-
-		kvs[cnt].key = p1;
-		kvs[cnt].key_len = p2-p1;
-		kvs[cnt].value = p2+1;
-		kvs[cnt].value_len = p3-p2-1;
-		cnt++;
-
-		if(p3 != '\0') {
-			b = p3;
-		} else {
-			break;
-		}
+int parse_get_path(const char *path, int path_len,  /*input*/
+				const char **action, int *action_len, KV *kvs, int *kvs_num) {/*output*/
+	const char *p = strnchr(path, '?', path_len);
+	/*not find the '?'*/
+	if (p == NULL) {
+		*action = path;
+		*action_len = path_len;
+		*kvs_num = 0;
 	}
-	*kvs_num = cnt;
+	else {
+		*action = path;
+		*action_len = p- path;
+		
+		int cnt = 0;	/*kv count*/
+		const char *p1 = p;
+		const char *p2;
+		const char *p3;
+		int end = 0;
+		
+		while(1) {
+			if(*kvs_num <= cnt) {/*tha array kvs' len is less than b*/
+		    	break;
+			}
+			p2 = strnchr(p1+1, '=', path_len-(p1+1-path));
+			if(p2 == NULL) {
+				*kvs_num = cnt;
+				return -1;
+			}
+			p3 = strnchr(p2+1, '&', path_len-(p2+1-path));
+			if(p3 == NULL) {
+				p3 = path+path_len;
+				end = 1;
+			}
+			kvs[cnt].key = p1+1;
+			kvs[cnt].key_len = p2-p1-1;
+			kvs[cnt].value = p2+1;
+			kvs[cnt].value_len = p3-p2-1;
+			cnt++;
+			
+			if(!end) {
+				p1 = p3;
+			}
+			else {
+				break;
+			}
+			
+		}
+		*kvs_num = cnt;
+	}
 	return 0;
 }
 
