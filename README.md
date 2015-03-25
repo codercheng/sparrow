@@ -10,6 +10,12 @@
   * [@blog](http://chengshuguang.com)
   * [@chat room](http://chengshuguang.com/ajax.html)
 
+---------------
+#News
+  * 2015-03-26日凌晨1点：修掉一个严重bug，该bug会导致stack smashing.
+  
+   原因：`sprintf() 会导致数组溢出`, 全部用`snprintf()`替换掉。指定最大长度。
+
 ----------------
 ###How To Use
    * make
