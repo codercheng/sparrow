@@ -9,9 +9,9 @@ extern "C"
 
 #define CONFIG_FILE_PATH "config/sparrow.conf"
 
-/**
- * default configuration value
- */
+	/**
+	 * default configuration value
+	 */
 #define DEF_LISTEN_PORT 6868
 #define DEF_MAX_EVENT 1024
 #define DEF_USE_EPOLL_ET 1
@@ -31,32 +31,32 @@ extern "C"
 
 #define IS_EQUAL(str1, str2) strcmp(str1, str2)== 0
 
-typedef struct {
-	int listen_port;
-	int max_conn;
-	int use_epoll_et;
-	int use_tcp_cork;
+	typedef struct {
+		int listen_port;
+		int max_conn;
+		int use_epoll_et;
+		int use_tcp_cork;
 
-	char root_dir[512];
+		char root_dir[512];
 
-	int cache_control_max_age;
+		int cache_control_max_age;
 
-	//log
-	int log_enable;
-	int log_time_out;
-	int log_level;
+		//log
+		int log_enable;
+		int log_time_out;
+		int log_level;
 
-	int worker_thread_num;
+		int worker_thread_num;
 
-	char def_home_page[128];
-	
-	//folder
-	int max_sub_item_num;
+		char def_home_page[128];
 
-} config_t;
+		//folder
+		int max_sub_item_num;
 
-extern config_t conf;
-extern int read_config(config_t *conf);
+	} config_t;
+
+	extern config_t conf;
+	extern int read_config(config_t *conf);
 
 #ifdef __cplusplus
 }

@@ -11,8 +11,8 @@
 extern "C" {
 #endif
 
-int url_decode(char *str, int len);
-char *url_encode(char const *s, int len, int *new_length);
+	int url_decode(char *str, int len);
+	char *url_encode(char const *s, int len, int *new_length);
 
 #ifdef __cplusplus
 }
