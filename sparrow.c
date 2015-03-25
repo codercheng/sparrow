@@ -339,20 +339,21 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		memset(filename, 0, sizeof(filename));
 
 		if (memcmp(action, "/", action_len) == 0) {
-			sprintf(filename, "%s/%s", prefix, conf.def_home_page);
+			snprintf(filename, 512, "%s/%s", prefix, conf.def_home_page);
 		}
 		else {
-			sprintf(filename, "%s%.*s", prefix, action_len, action);
+			/*limit the filename len*/
+			snprintf(filename, 512, "%s%.*s", prefix, action_len, action);
 		}
 #ifdef _DEBUG
-		char dbg_msg[512];
+		char dbg_msg[1024 + 1 + strlen(work_dir)];
 		memset(dbg_msg, 0, sizeof(dbg_msg));
-		sprintf(dbg_msg, "prefix:%s", prefix);
+		snprintf(dbg_msg, 512, "prefix:%s", prefix);
 
 		dbg_printf(dbg_msg);
 
 		memset(dbg_msg, 0, sizeof(dbg_msg));
-		sprintf(dbg_msg, "fileFullPath:%s", filename);
+		snprintf(dbg_msg, 512, "fileFullPath:%s", filename);
 		dbg_printf(dbg_msg);
 #endif
 		/***********************************************************************
@@ -383,7 +384,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 		if (fd_records[sock].http_code == 404) {
 			memset(filename, 0, sizeof(filename));
-			sprintf(filename, "%s/%s", prefix, "404.html");
+			snprintf(filename, 512, "%s/%s", prefix, "404.html");
 			lstat(filename, &filestat);
 		}
 
