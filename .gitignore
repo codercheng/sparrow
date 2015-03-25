@@ -29,6 +29,7 @@
 *.hex
 
 #custom
+.*
 core
 log/
 test/
