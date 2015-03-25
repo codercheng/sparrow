@@ -1,5 +1,6 @@
 while true
 do
-  pidof ./sparrow || ./sparrow
-  sleep 10
+  pidof ./sparrow_main_r || ./sparrow_main_r &
+  pidof ./sparrow || ./sparrow &
+  sleep 300
 done

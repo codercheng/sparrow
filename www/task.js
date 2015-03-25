@@ -12,7 +12,7 @@ function init(){
   $('input[class="status"]:first').parent('label').addClass('active');
   $('input[class="time_interval"]:first').parent('label').addClass('active');
   $('#send-message').submit(create_new_task);
-  checkCookie();
+//  $('#accordion-292822').modal('show');//checkCookie();
   task_query(0, 0);
 }
  
