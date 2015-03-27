@@ -282,6 +282,9 @@ void ev_clear(int fd) {
 	fd_records[fd].events = 0;
 	fd_records[fd].cb_read = NULL;
 	fd_records[fd].cb_write = NULL;
+	if (fd_records[fd].ffd != NO_FILE_FD) {
+		close(fd_records[fd].ffd);
+	}
 	fd_records[fd].ffd = NO_FILE_FD;
 	fd_records[fd].write_pos = 0;
 	fd_records[fd].total_len = 0;
