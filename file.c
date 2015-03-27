@@ -91,6 +91,7 @@ int block_read(const char *filename, char *buf, int max_size) {
 	}
 
 	buf[n] = '\0';
+	close(fd);
 	return 0;
 }
 

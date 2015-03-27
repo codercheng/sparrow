@@ -390,17 +390,6 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 		int fd = -1;
 		if (fd_records[sock].http_code != DIR_CODE) {
-			fd = open(filename, O_RDONLY);
-			if (fd == -1) {
-				if (conf.log_enable) {
-					log_error("can not open file:%s\n", filename);
-				}
-				else {
-					fprintf(stderr, "can not open file:%s\n", filename);
-				}
-				safe_close(loop, sock);
-				return NULL;
-			}
 
 			last_modified_time = filestat.st_mtime;
 			//process 304 not modified
@@ -417,6 +406,24 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 					dbg_printf("304 not modified!");
 				}
 			}
+
+			/*
+			* 确定304之前不需要打开文件，如果不是304，那么这时才打开文件。[bug:304的时候导致ffd没能关闭]
+			*/
+			fd = open(filename, O_RDONLY);
+
+			if (fd == -1) {
+				if (conf.log_enable) {
+					log_error("can not open file:%s\n", filename);
+				}
+				else {
+					fprintf(stderr, "can not open file:%s\n", filename);
+				}
+				safe_close(loop, sock);
+				return NULL;
+			}
+			
+			fd_records[sock].ffd = fd;
 		}
 
 		char content_type[64];
@@ -424,7 +431,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 		if (fd_records[sock].http_code != 304) {
 
-			fd_records[sock].ffd = fd;
+			//fd_records[sock].ffd = fd;
 			fd_records[sock].read_pos = 0;
 
 			if (fd_records[sock].http_code != DIR_CODE) {
@@ -686,8 +693,6 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 					fprintf(stderr, "sendfile:%s\n", strerror(errno));
 				}
 				safe_close(loop, sockfd);
-				close(ffd);
-
 				return NULL;
 			}
 			else {
