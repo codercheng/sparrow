@@ -72,7 +72,9 @@ bool MysqlEncap::ReConnect(){
 * 查询语句
 ************************************************/
 bool MysqlEncap::ExecuteQuery(const char *sql){
+#ifdef _DEBUG
 	printf("sql:%s\n",sql);
+#endif
 	assert(sql != NULL);
 	if(sql == NULL)
 		return true;
@@ -103,7 +105,9 @@ bool MysqlEncap::ExecuteQuery(const char *sql){
 	return true;
 }
 bool MysqlEncap::Execute(const char *sql){
+#ifdef _DEBUG
 	printf("sql:%s\n",sql);
+#endif
 	if(sql == NULL)
 		return true;
 	if(!isConnected){

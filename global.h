@@ -19,7 +19,7 @@
 #define DIR_SECOND_PART "dir.part2"
 //
 //for debug
-#define _DEBUG
+//#define _DEBUG
 
 #endif
 

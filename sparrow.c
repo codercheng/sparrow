@@ -373,8 +373,9 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			safe_close(loop, sock);
 			return NULL;
 		}
+#ifdef _DEBUG
 		printf("action:%.*s\n", action_len, action);
-
+#endif
 
 		if (strncmp(action, "/livechat", 9) == 0) {
 			char sql[1024];
@@ -383,7 +384,9 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			long long int last_mid = 0;
 			int i;
 			for (i = 0; i < kvs_num; i++) {
+#ifdef _DEBUG
 				printf("%.*s=%.*s\n", kvs[i].key_len, kvs[i].key, kvs[i].value_len, kvs[i].value);
+#endif
 				if (strncmp("lastId", kvs[i].key, kvs[i].key_len) == 0) {
 					char tmp[32];
 					sprintf(tmp, "%.*s", kvs[i].value_len, kvs[i].value);
