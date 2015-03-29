@@ -145,14 +145,17 @@ void process_timeout2(ev_loop_t *loop, ev_timer_t *timer) {
 	int sock = timer->fd;
 
 
-	cJSON *root, *obj;
+	cJSON *root, *obj1, *obj2;
 	char *out;
-	root = cJSON_CreateArray();
+	root = cJSON_CreateObject();
+	obj1 = cJSON_CreateArray();
 
-	obj = cJSON_CreateObject();
-	cJSON_AddItemToArray(root, obj);
-	cJSON_AddStringToObject(obj, "id", "timeout");
-	cJSON_AddStringToObject(obj, "body", "pull timeout");
+	obj2 = cJSON_CreateObject();
+
+	cJSON_AddItemToObject(root, "result", obj1);
+	cJSON_AddItemToArray(obj1, obj2);
+	cJSON_AddStringToObject(obj2, "id", "timeout");
+	cJSON_AddStringToObject(obj2, "body", "pull timeout");
 	out = cJSON_Print(root);
 	cJSON_Delete(root);
 
@@ -373,7 +376,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		printf("action:%.*s\n", action_len, action);
 
 
-		if (strncmp(action, "/livechat", action_len) == 0) {
+		if (strncmp(action, "/livechat", 9) == 0) {
 			char sql[1024];
 			memset(sql, 0, sizeof(sql));
 
@@ -416,15 +419,23 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 
 			if (count != 0) {
-				cJSON *root, *obj;
+				cJSON *root, *obj1, *obj2;
 				char *out;
-				root = cJSON_CreateArray();
+				//root = cJSON_CreateArray();
+				root = cJSON_CreateObject();
+				obj1 = cJSON_CreateArray();
+				//obj2 = cJSON_CreateObject();
+
+				cJSON_AddItemToObject(root, "result", obj1);
+				//cJSON_AddItemToArray(obj1, obj2);
+	
+
 				while (sql_conn->FetchRow()) {
-					obj = cJSON_CreateObject();
-					cJSON_AddItemToArray(root, obj);
-					cJSON_AddStringToObject(obj, "id", sql_conn->GetField("mid"));
-					cJSON_AddStringToObject(obj, "time", sql_conn->GetField("mtime"));
-					cJSON_AddStringToObject(obj, "body", sql_conn->GetField("mbody"));
+					obj2 = cJSON_CreateObject();
+					cJSON_AddItemToArray(obj1, obj2);
+					cJSON_AddStringToObject(obj2, "id", sql_conn->GetField("mid"));
+					cJSON_AddStringToObject(obj2, "time", sql_conn->GetField("mtime"));
+					cJSON_AddStringToObject(obj2, "body", sql_conn->GetField("mbody"));
 					//cJSON_Delete(obj);
 				}
 				out = cJSON_Print(root);
@@ -461,7 +472,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			return NULL;
 		}
 
-		if (strncmp(action, "/push", action_len) == 0) {
+		if (strncmp(action, "/push", 5) == 0) {
 			char message[1024 * 2 + 128];
 			memset(message, 0, sizeof(message));
 
@@ -593,7 +604,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			return NULL;
 		}
 
-		if (strncmp(action, "/create_new_task", action_len) == 0) {
+		if (strncmp(action, "/create_new_task", 16) == 0) {
 			char message[1024 * 2 + 128];
 			memset(message, 0, sizeof(message));
 
@@ -659,7 +670,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			free(out);
 			return NULL;
 		}
-		if (strncmp(action, "/task_query", action_len) == 0) {
+		if (strncmp(action, "/task_query", 11) == 0) {
 			char sql[1024];
 			memset(sql, 0, sizeof(sql));
 
@@ -720,16 +731,24 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			int count = sql_conn->GetQueryResultCount();
 
 			if (count != 0) {
-				cJSON *root, *obj;
+				cJSON *root, *obj1, *obj2;
+				root = cJSON_CreateObject();
+				obj1 = cJSON_CreateArray();
+
+				//obj2 = cJSON_CreateObject();
+
+				cJSON_AddItemToObject(root, "result", obj1);
+				//cJSON_AddItemToArray(obj1, obj2);
+				
 				char *out;
 				root = cJSON_CreateArray();
 				while (sql_conn->FetchRow()) {
-					obj = cJSON_CreateObject();
-					cJSON_AddItemToArray(root, obj);
-					cJSON_AddStringToObject(obj, "task_id", sql_conn->GetField("task_id"));
-					cJSON_AddStringToObject(obj, "task_time", sql_conn->GetField("task_create_time"));
-					cJSON_AddStringToObject(obj, "task_status", sql_conn->GetField("task_status"));
-					cJSON_AddStringToObject(obj, "task_content", sql_conn->GetField("task_content"));
+					obj2 = cJSON_CreateObject();
+					cJSON_AddItemToArray(obj1, obj2);
+					cJSON_AddStringToObject(obj2, "task_id", sql_conn->GetField("task_id"));
+					cJSON_AddStringToObject(obj2, "task_time", sql_conn->GetField("task_create_time"));
+					cJSON_AddStringToObject(obj2, "task_status", sql_conn->GetField("task_status"));
+					cJSON_AddStringToObject(obj2, "task_content", sql_conn->GetField("task_content"));
 					//cJSON_Delete(obj);
 				}
 				out = cJSON_Print(root);
