@@ -735,13 +735,9 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				root = cJSON_CreateObject();
 				obj1 = cJSON_CreateArray();
 
-				//obj2 = cJSON_CreateObject();
-
 				cJSON_AddItemToObject(root, "result", obj1);
-				//cJSON_AddItemToArray(obj1, obj2);
 				
 				char *out;
-				root = cJSON_CreateArray();
 				while (sql_conn->FetchRow()) {
 					obj2 = cJSON_CreateObject();
 					cJSON_AddItemToArray(obj1, obj2);
