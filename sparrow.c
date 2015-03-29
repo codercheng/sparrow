@@ -542,15 +542,18 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				char time_now[20];
 				memset(time_now, 0, sizeof(time_now));
 
-				cJSON *obj;
+				cJSON *obj1, *obj2;
 
-				root = cJSON_CreateArray();
+				root = cJSON_CreateObject();
+				obj1 = cJSON_CreateArray();
 
-				obj = cJSON_CreateObject();
-				cJSON_AddItemToArray(root, obj);
-				cJSON_AddStringToObject(obj, "id", new_mid);
-				cJSON_AddStringToObject(obj, "time", time_now);
-				cJSON_AddStringToObject(obj, "body", body);
+				cJSON_AddItemToObject(root, "result", obj1);
+
+				obj2 = cJSON_CreateObject();
+				cJSON_AddItemToArray(obj1, obj2);
+				cJSON_AddStringToObject(obj2, "id", new_mid);
+				cJSON_AddStringToObject(obj2, "time", time_now);
+				cJSON_AddStringToObject(obj2, "body", body);
 
 				out = cJSON_Print(root);
 				cJSON_Delete(root);
