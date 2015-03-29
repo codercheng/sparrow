@@ -186,7 +186,7 @@
 						jsonp: "callback",
 			            jsonpCallback:"livechat",
 						success: function(message){
-							$.each(message, function(idx, obj) {
+							$.each(message.result, function(idx, obj) {
 								var $b = $('#playlist');
 								var text = obj.body;
 								if(obj.id == 'timeout') {

@@ -188,7 +188,7 @@ function task_query(status, time_interval) {
 	    
 	    success: function(message){
 	      $('#wrapper_task').empty();
-	      $.each(message, function(idx, task) {
+	      $.each(message.result, function(idx, task) {
 	        add(task);
 	      });
 	    
