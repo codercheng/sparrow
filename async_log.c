@@ -292,6 +292,7 @@ void log_init(int second, int log_level) {
 	signal(SIGINT, safe_exit);
 	signal(SIGTERM, safe_exit);
 	signal(SIGQUIT, safe_exit);
+	signal(SIGSEGV, safe_exit);
 
 	set_time_out_sec(second);
 	set_min_log_level(log_level);
