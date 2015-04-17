@@ -106,8 +106,8 @@ void log_write_impl(const char *file, int line, const char *log_level_str, const
 		t_tid = gettid();
 	}
 
-	count_text = sprintf(buf_text, " %-6s %d %s:%d ", log_level_str, t_tid, file, line);
-	count_text += vsprintf(buf_text + count_text, format, ap);
+	count_text = snprintf(buf_text, 1024, " %-6s %d %s:%d ", log_level_str, t_tid, file, line);
+	count_text += vsnprintf(buf_text + count_text, 1024-count_text, format, ap);
 	if (buf_text[count_text - 1] != '\n') {
 		buf_text[count_text] = '\n';
 		buf_text[++count_text] = '\0';
@@ -129,7 +129,7 @@ void log_write_impl(const char *file, int line, const char *log_level_str, const
 		 */
 		ti = get_cur_time();
 
-		count_time = sprintf(buf_time, "[ %02d:%02d:%02d.%06ld ]", ti.hour, ti.min, ti.sec, ti.usec);
+		count_time = snprintf(buf_time, 32, "[ %02d:%02d:%02d.%06ld ]", ti.hour, ti.min, ti.sec, ti.usec);
 
 		/****************************************************************/
 
@@ -246,7 +246,7 @@ int create_new_log(void) {
 		}
 	}
 
-	int count = sprintf(buf, "%s/log/%04d-%02d-%02d.log", log_path, cur_log_year, cur_log_mon, cur_log_day);
+	int count = snprintf(buf, MAX_PATH, "%s/log/%04d-%02d-%02d.log", log_path, cur_log_year, cur_log_mon, cur_log_day);
 	buf[count] = '\0';
 	fd = open(buf, O_WRONLY | O_CREAT | O_APPEND, 0644);
 	if (fd == -1) {
@@ -329,13 +329,13 @@ void log_init(int second, int log_level) {
 	pthread_detach(log_pid);
 
 	if (ret == -1) {
-		count = sprintf(buf, "[ %02d:%02d:%02d.%06ld ] %-6s %ld %s:%d %s\n", ti.hour, ti.min, ti.sec, ti.usec, \
+		count = snprintf(buf, 256, "[ %02d:%02d:%02d.%06ld ] %-6s %ld %s:%d %s\n", ti.hour, ti.min, ti.sec, ti.usec, \
 			LOG_ERROR_STR, gettid(), __FILE__, __LINE__, "create async_log thread error");
 		buf[count] = '\0';
 		write_to_file_inner(log_fd, buf, count);
 	}
 	else {
-		count = sprintf(buf, "[ %02d:%02d:%02d.%06ld ] %-6s %ld %s:%d %s\n", ti.hour, ti.min, ti.sec, ti.usec, \
+		count = snprintf(buf, 256, "[ %02d:%02d:%02d.%06ld ] %-6s %ld %s:%d %s\n", ti.hour, ti.min, ti.sec, ti.usec, \
 			LOG_INFO_STR, gettid(), __FILE__, __LINE__, "create async_log thread successfully");
 		buf[count] = '\0';
 		write_to_file_inner(log_fd, buf, count);
