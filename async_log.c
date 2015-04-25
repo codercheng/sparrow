@@ -108,6 +108,9 @@ void log_write_impl(const char *file, int line, const char *log_level_str, const
 
 	count_text = snprintf(buf_text, 1024, " %-6s %d %s:%d ", log_level_str, t_tid, file, line);
 	count_text += vsnprintf(buf_text + count_text, 1024-count_text, format, ap);
+	if (count_text > 1024) {
+		count_text = 1024;
+	}
 	if (buf_text[count_text - 1] != '\n') {
 		buf_text[count_text] = '\n';
 		buf_text[++count_text] = '\0';
