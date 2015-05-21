@@ -5,7 +5,7 @@ CFLAGS = -Wall -c $(DEBUG)
 LFLAGS = -Wall -pthread  $(DEBUG)
 
 sparrow_main_d: $(OBJS)
-	$(CC) $(LFLAGS) $(OBJS) -lrt -lm -o sparrow_main_d
+	$(CC) $(LFLAGS) $(OBJS) -lrt -lm -o sparrow
 
 sparrow.o: sparrow.c sparrow.h global.h  ev_loop.h async_log.h thread_manage.h config.h file.h mime.h url.h min_heap.h cJSON.h picohttpparser.h
 	$(CC) $(CFLAGS)  sparrow.c
