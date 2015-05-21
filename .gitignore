@@ -31,8 +31,8 @@
 #custom
 .*
 core
-log/
 test/
 www/myfolder/
 test
 test.c
+website/

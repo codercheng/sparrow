@@ -1,3 +1,0 @@
-[ 00:02:57.320526 ] INFO   31414 sparrow.c:115 Got connection from ip:137.189.204.184, port:8074, conn_fd:86
-[ 00:03:00.110414 ] INFO   31414 sparrow.c:115 Got connection from ip:137.189.204.184, port:8075, conn_fd:86
-[ 00:03:00.658375 ] INFO   31414 sparrow.c:115 Got connection from ip:137.189.204.184, port:8076, conn_fd:86
