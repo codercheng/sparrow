@@ -37,6 +37,7 @@
    * ./sparrow
    * open in browser http://127.0.0.1:xxxx/ [端口xxxx, config/sparrow.conf中配置]
    * http://127.0.0.1:xxxx/myfolder To Test Folder
+   * `注意: 如果要测性能，最好修改一下系统的最大打开文件描述符，临时修改:sudo ulimit -n 10000`
    
 ----------------
 ###功能
