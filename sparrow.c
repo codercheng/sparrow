@@ -410,20 +410,25 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			/*
 			* 确定304之前不需要打开文件，如果不是304，那么这时才打开文件。[bug:304的时候导致ffd没能关闭]
 			*/
-			fd = open(filename, O_RDONLY);
+			if (fd_records[sock].http_code != 304) {
+				fd = open(filename, O_RDONLY);
 
-			if (fd == -1) {
-				if (conf.log_enable) {
-					log_error("can not open file:%s\n", filename);
+				if (fd == -1) {
+					if (conf.log_enable) {
+						log_error("can not open file:%s\n", filename);
+					}
+					else {
+						fprintf(stderr, "can not open file:%s, because:%s\n", filename, strerror(errno));
+					}
+					safe_close(loop, sock);
+					return NULL;
 				}
-				else {
-					fprintf(stderr, "can not open file:%s\n", filename);
-				}
-				safe_close(loop, sock);
-				return NULL;
+				
+				fd_records[sock].ffd = fd;
 			}
-			
-			fd_records[sock].ffd = fd;
+			else {
+				fd_records[sock].ffd = NO_FILE_FD;
+			}
 		}
 
 		char content_type[64];
@@ -726,7 +731,6 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 			else {
 				close(sockfd);
 			}
-			close(ffd);
 
 			return NULL;
 		}
