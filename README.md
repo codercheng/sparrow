@@ -48,13 +48,13 @@
    * 支持sendfile, tcp_cock等高效操作
    * 支持404， 500
    * 支持304 not modified
-   * 支持长连接，http Keepalive,不支持http pipeling
-   * 支持定时任务（timerfd + 最小堆)
+   * 支持`长连接，http Keepalive`,不支持http pipeling
+   * 支持`定时任务（timerfd + 最小堆)`
    * 支持异步的日志：
        * 支持零点自动切换日志文件
        * 完善清晰的格式
        * 多线程支持
-   * 支持epoll
+   * 支持`epoll`
    * 支持文件配置
    * 不依赖任何第三方库
 
