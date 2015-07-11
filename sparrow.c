@@ -80,7 +80,10 @@ int main()
 		}
 		return -1;
 	}
-	listen_loop = ev_create_loop(conf.max_conn, 1);
+	/* TODO: ET model will raise a fatal problem. */
+	/* connection exceeds max connection, listen_sock will not be triggerd */
+	listen_loop = ev_create_loop(conf.max_conn, 0);
+
 	int ret = ev_register(listen_loop, listen_sock, EV_READ, accept_sock);
 	if (ret == -1) {
 		if (conf.log_enable) {
@@ -191,10 +194,11 @@ void *accept_sock(ev_loop_t *loop, int sock, EV_TYPE events) {
 				log_error("accpet err\n");
 			}
 			else {
-				fprintf(stderr, "accpet err\n");
+				fprintf(stderr, "1. accpet err: %s\n", strerror(errno));
 			}
 			return NULL;
 		}
+		//fprintf(stderr, "2. accpet err: %s\n", strerror(errno));
 	}
 
 	return NULL;
