@@ -86,7 +86,7 @@ int main()
 		}
 		return -1;
 	}
-	listen_loop = ev_create_loop(conf.max_conn, 1);
+	listen_loop = ev_create_loop(conf.max_conn, 0);
 	int ret = ev_register(listen_loop, listen_sock, EV_READ, accept_sock);
 	if (ret == -1) {
 		if (conf.log_enable) {
