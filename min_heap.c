@@ -79,8 +79,8 @@ void heap_add(ev_loop_t *loop, ev_timer_t *timer) {
 
 static
 struct timespec double2timespec(double timeout) {
-	int sec = (int)timeout;
-	int nsec = (int)((timeout - sec) * 1000000000);
+	long long int sec = (long long int)timeout;
+	long long int nsec = (long long int)((timeout - (double)sec) * 1000000000);
 
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -184,60 +184,74 @@ void add_timer(ev_loop_t *loop, double timeout, cb_timer_t cb,
 
 	fd_records[fd].timer_ptr = timer;
 	heap_add(loop, timer);
-	if (loop->heap_size == 1) {
-		//		printf("---head_size == 1\n");
+
+	/* two special conditions which need to settime */
+	/* 1. first timer event                         */
+	/* 2. the newly add timer is the new heap top   */
+	/*    that means new's ts < old heap top's ts   */
+	if (loop->heap_size == 1 || heap_top((ev_timer_t **)loop->heap) == timer) {
 		ts = tick(loop);
 		struct itimerspec newValue;
 		bzero(&newValue, sizeof(newValue));
 		newValue.it_value = ts;
-		//	    printf("********h1,ts:%ld.%ld\n", ts.tv_sec, ts.tv_nsec);
-		timerfd_settime(loop->timer_fd, 0, &newValue, NULL);
+
+		if (timerfd_settime(loop->timer_fd, 0, &newValue, NULL) != 0) {
+			fprintf(stderr, "ERROR: timerfd_settime error: %s\n", strerror(errno));
+		}
 	}
 }
 
 
 struct
-	timespec tick(ev_loop_t *loop) {
-		//printf("tick\n");
-		struct timespec ts;
+timespec tick(ev_loop_t *loop) {
+	//printf("tick\n");
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	//time now >= heap top
+	while (heap_top((ev_timer_t **)(loop->heap)) != NULL && !timer_cmp_lt(ts, heap_top((ev_timer_t **)(loop->heap))->ts)) {
+		//////////////////////////////////////////
+		//heap != null, and delete all the cb==null timer in the head
+		int bcontinue = 0;
+		while (heap_top((ev_timer_t **)(loop->heap)) != NULL && heap_top((ev_timer_t **)(loop->heap))->cb == NULL) {
+			heap_pop(loop);
+			//			printf("+++++++++(cb == null)+++++++\n");
+			bcontinue = 1;
+		}
+		if (bcontinue) {
+			continue;
+		}
+		////////////////////////////////, int *heap_size/////////
+		(*(heap_top((ev_timer_t **)(loop->heap))->cb))(loop, heap_top((ev_timer_t **)(loop->heap)));
+		if (!heap_top((ev_timer_t **)(loop->heap))->repeat) {
+			heap_pop(loop);
+		}
+		else {
+			//coming soon...
+			heap_top((ev_timer_t **)(loop->heap))->ts = double2timespec(heap_top((ev_timer_t **)(loop->heap))->timeout);
+			heap_percolate_down((ev_timer_t **)(loop->heap), 1, loop->heap_size);
+		}
+		/* important: update the current time, because you */
+		/* never know how long the callback func costs  */
 		clock_gettime(CLOCK_MONOTONIC, &ts);
-		//time now >= heap top
-		while (heap_top((ev_timer_t **)(loop->heap)) != NULL && !timer_cmp_lt(ts, heap_top((ev_timer_t **)(loop->heap))->ts)) {
-			//////////////////////////////////////////
-			//heap != null, and delete all the cb==null timer in the head
-			int bcontinue = 0;
-			while (heap_top((ev_timer_t **)(loop->heap)) != NULL && heap_top((ev_timer_t **)(loop->heap))->cb == NULL) {
-				heap_pop(loop);
-				//			printf("+++++++++(cb == null)+++++++\n");
-				bcontinue = 1;
-			}
-			if (bcontinue) {
-				continue;
-			}
-			////////////////////////////////, int *heap_size/////////
-			(*(heap_top((ev_timer_t **)(loop->heap))->cb))(loop, heap_top((ev_timer_t **)(loop->heap)));
-			if (!heap_top((ev_timer_t **)(loop->heap))->repeat) {
-				heap_pop(loop);
-			}
-			else {
-				//coming soon...
-				heap_top((ev_timer_t **)(loop->heap))->ts = double2timespec(heap_top((ev_timer_t **)(loop->heap))->timeout);
-				heap_percolate_down((ev_timer_t **)(loop->heap), 1, loop->heap_size);
-			}
-		}
-		if (heap_top((ev_timer_t **)(loop->heap)) == NULL) {
-			ts.tv_sec = 0;
-			ts.tv_nsec = 0;
-			return ts;
-		}
-		if (ts.tv_nsec > heap_top((ev_timer_t **)(loop->heap))->ts.tv_nsec) {
-			heap_top((ev_timer_t **)(loop->heap))->ts.tv_sec--;
-			heap_top((ev_timer_t **)(loop->heap))->ts.tv_nsec += 1000000000;
-		}
-		ts.tv_sec = heap_top((ev_timer_t **)(loop->heap))->ts.tv_sec - ts.tv_sec;
-		ts.tv_nsec = heap_top((ev_timer_t **)(loop->heap))->ts.tv_nsec - ts.tv_nsec;
+	}
+	if (heap_top((ev_timer_t **)(loop->heap)) == NULL) {
+		ts.tv_sec = 0;
+		ts.tv_nsec = 0;
 		return ts;
 	}
+	
+	long int sec_tmp  = heap_top((ev_timer_t **)loop->heap)->ts.tv_sec;
+	long int nsec_tmp = heap_top((ev_timer_t **)loop->heap)->ts.tv_nsec;
+
+	if (ts.tv_nsec > heap_top((ev_timer_t **)(loop->heap))->ts.tv_nsec) {
+		sec_tmp--;
+		nsec_tmp += 1000000000;
+	}
+	ts.tv_sec = sec_tmp - ts.tv_sec;
+	ts.tv_nsec = nsec_tmp - ts.tv_nsec;
+
+	return ts;
+}
 
 void* check_timer(ev_loop_t *loop, int tfd, EV_TYPE events) {
 	uint64_t data;
@@ -248,10 +262,6 @@ void* check_timer(ev_loop_t *loop, int tfd, EV_TYPE events) {
 	struct itimerspec newValue;
 	bzero(&newValue, sizeof(newValue));
 	newValue.it_value = ts;
-	//printf("*******settime in check_timer, ts:%ld.%ld\n", ts.tv_sec, ts.tv_nsec);
-	//printf("*******settime in check_timer, newValue:%ld.%ld\n", newValue.it_value.tv_sec, newValue.it_value.tv_nsec);
-	//if(newValue.it_value.tv_sec==0)
-	//	newValue.it_value.tv_sec = 2;
 
 	int ret;
 	ret = timerfd_settime(loop->timer_fd, 0, &newValue, NULL);
