@@ -24,7 +24,12 @@
 	hr {
 		border:0;background-color:#FF4040;height:4px;
 	}
-
+   .card {
+      border:1px ridge red; border-radius: 5px; margin-bottom: 10px;
+   }
+   .card:hover {
+      border:2px ridge red; border-radius: 2px;
+   }
    ::selection{color:#fff; background:#FF7256;}
    ::-moz-selection{color:#fff;background:#FF7256;}
    ::-webkit-selection{color:#fff;background:#FF7256;}
@@ -92,54 +97,146 @@
    </div>
 
    <!-- 添加project -->
+   <div class="row-fluid">
 
-   <!-- <div class="hero-unit" style = "border:1px ridge grey; border-radius: 10px; ">
-      <h3 >
-                  <img class="img-circle" alt="头像" src="./pic_res/git.png" style="border-width: 2px; border-style: ridge; margin: 10px; " />
+      <div class="col-md-6" >
+         <div class="card">
+               <span class="label label-success" style="float:left; margin-top:5px; margin-left:1px">个人项目</span>
+               <br/>
+               <h3 >
+                  <img class="img" alt="头像" src="./pic_res/sparrow.png" style="border-width: 0px; border-style: ridge; margin: 10px; " />
                   <strong>
-                  Project 1
+                  Sparrow
                   </strong>
-      </h3>
-      <p><a class="btn btn-danger btn-large" href="#">detail »</a></p>
-   </div> -->
 
-   <img class="img-rounded" src="./pic_res/cry.png"><strong>Sorry! this part has not been completed!
-   Click the button below for more information!</strong></img>
-   <p><img src="./pic_res/arrow.png"/></p>
-   <div class="accordion" id="accordion-292822" style="margin-top:10px">
-            <div class="accordion-group">
-               <div class="accordion-heading">
-                  <button class="btn btn-danger accordion-toggle collapsed"  data-parent="#accordion-292822" data-toggle="collapse" style="text-decoration:none" href="#accordion-element-762390">Quick Entry&raquo;&raquo;</button>
+               </h3>
+                           <p>
+                           一个简单高效的http server，纯C语言开发(基于Linux).
+                           </p>
+            <p><a class="btn btn-danger btn-large"  target="sparrow" href="https://github.com/codercheng/sparrow">detail »</a></p>
+         </div>
+
+         <div class="card" >
+               <span class="label label-success" style="float:left; margin-top:5px; margin-left:1px">个人项目</span>
+               <br/>
+               <h3 >
+                  <img class="img" alt="头像" src="./pic_res/evlib.png" style="border-width: 0px; border-style: ridge; margin: 10px; " />
+                  <strong>
+                  Ev_lib
+                  </strong>
+
+               </h3>
+                           <p>
+                           * 一个基于epoll+timerfd的事件回调库
+                           </p>
+                           <p>
+                           * 目前支持<strong>IO</strong>读写事件，和<strong>定时</strong>事件。
+                           </p>
+            <p><a class="btn btn-danger btn-large"  target="evlib" href="https://github.com/codercheng/ev_lib">detail »</a></p>
+         </div>
+
+         <div class="card">
+               <span class="label label-success" style="float:left; margin-top:5px; margin-left:1px">个人项目</span>
+               <br/>
+               <h3 >
+                  <img class="img" alt="头像" src="./pic_res/branch.png" style="border-width: 0px; border-style: ridge; margin: 10px; " />
+                  <strong>
+                  MySCM
+                  </strong>
+
+               </h3>
+                           <p>
+                           * 基于mysql的版本控制系统
+                           </p>
+            <p><a class="btn btn-danger btn-large"  target="evlib" href="#">detail »</a></p>
+         </div>
+
+
+
+
+      </div>
+      <div class="col-md-6" >
+         <div class="card" >
+               <span class="label label-danger" style="float:left; margin-top:5px; margin-left:1px">实习项目</span>
+               <span class="label label-danger" style="float:left; margin-top:5px; margin-left:1px">阿里云飞天系统内核组</span>
+               <br/>
+               <h3 >
+                  <img class="img" alt="头像" src="./pic_res/debuginfo.png" style="border-width: 0px; border-style: ridge; margin: 10px; " />
+                  <strong>
+                  Debuginfo
+                  </strong>
+
+               </h3>
+                           <p>
+                           * 2015.6 ~ 至今：主要做debuginfo和source的统一管理和profiling相关
+                           </p>
+               <p><a class="btn btn-danger btn-large" href="#">detail »</a></p>
+         </div>
+
+         <div class="card" >
+               <span class="label label-danger" style="float:left; margin-top:5px; margin-left:1px">实验室合作项目</span>
+               <span class="label label-danger" style="float:left; margin-top:5px; margin-left:1px">Dynamsoft</span>
+               <br/>
+               <h3 >
+                  <img class="img" alt="头像" src="./pic_res/barcode.png" style="border-width: 0px; border-style: ridge; margin: 10px; " />
+                  <strong>
+                  DBR SDK
+                  </strong>
+
+               </h3>
+                           <p>
+                           *  实验室和dynamsoft公司合作项目,三个主要开发之一
+                           </p>
+                           <p>
+                           * 对扫描文档中的条形码进行快速定位和识别。
+                           </p>
+               <p><a class="btn btn-danger btn-large"  target ="dynamsoft" href="http://www.dynamsoft.com/Demo/DBR/BarcodeReaderDemo.aspx">Online Demo »</a></p>
+         </div>
+      </div>
+
+   </div>
+
+
+</div>
+   <div class="row">
+
+      <img class="img-rounded" src="./pic_res/cry.png"><strong>Sorry! this part has not been completed!
+      Click the button below for more information!</strong></img>
+      <p><img src="./pic_res/arrow.png"/></p>
+      <div class="accordion" id="accordion-292822" style="margin-top:10px">
+               <div class="accordion-group">
+                  <div class="accordion-heading">
+                     <button class="btn btn-danger accordion-toggle collapsed"  data-parent="#accordion-292822" data-toggle="collapse" style="text-decoration:none" href="#accordion-element-762390">Quick Entry&raquo;&raquo;</button>
+                  </div>
+
+                  <div class="accordion-body collapse" id="accordion-element-762390" style="height: 0px; border:1px ridge red; border-radius: 10px; background: ">
+                  <div class="accordion-inner" style="margin-top: 20px; margin-bottom: 20px" >
+                     <a href="http://www.zhihu.com/people/chengshuguang" target="zhihu">
+                     <img src="./pic_res/zhihu.png" title ="zhihu" style="margin-right:20px"/> 
+                     </a>
+                     <a href="https://github.com/codercheng/" target="github">
+                     <img src="./pic_res/git.png" title ="github" style="margin-right:20px"/> 
+                     </a>
+                     <a href="http://weibo.com/shuguangcheng/" target="weibo">
+                     <img src="./pic_res/sina.png" style="margin-right:20px" title="weibo"/>
+                     </a>
+                     <a href="resume.pdf" target="resume">
+                     <img src="./pic_res/resume2.png" title="Resume"/>
+                     </a>
+                     <a href="http://chengshuguang.com:8080" target="music">
+                     <img src="./pic_res/music.png" title ="music" style="margin-right:20px"/> 
+                     </a>
+                     <a href="task.html">
+                     <img src="./pic_res/task.png" style="margin-right:20px" title="Task Manager"/>
+                     </a>
+                     <a href="ajax.html">
+                     <img src="./pic_res/chat.png" title="Chat Group"/>
+                     </a>
+                  </div>
+
                </div>
-
-               <div class="accordion-body collapse" id="accordion-element-762390" style="height: 0px; border:1px ridge red; border-radius: 10px; background: ">
-               <div class="accordion-inner" style="margin-top: 20px; margin-bottom: 20px" >
-                  <a href="http://www.zhihu.com/people/chengshuguang" target="zhihu">
-                  <img src="./pic_res/zhihu.png" title ="zhihu" style="margin-right:20px"/> 
-                  </a>
-                  <a href="https://github.com/codercheng/" target="github">
-                  <img src="./pic_res/git.png" title ="github" style="margin-right:20px"/> 
-                  </a>
-                  <a href="http://weibo.com/shuguangcheng/" target="weibo">
-                  <img src="./pic_res/sina.png" style="margin-right:20px" title="weibo"/>
-                  </a>
-                  <a href="resume.pdf" target="resume">
-                  <img src="./pic_res/resume2.png" title="Resume"/>
-                  </a>
-                  <a href="http://chengshuguang.com:8080" target="music">
-                  <img src="./pic_res/music.png" title ="music" style="margin-right:20px"/> 
-                  </a>
-                  <a href="task.html">
-                  <img src="./pic_res/task.png" style="margin-right:20px" title="Task Manager"/>
-                  </a>
-                  <a href="ajax.html">
-                  <img src="./pic_res/chat.png" title="Chat Group"/>
-                  </a>
-               </div>
-
-            </div>
-    </div>
-
+      </div>
+   </div>
 
    <br/>
    <hr/>
@@ -152,7 +249,6 @@
          </a>
       </p>
    </div>
-</div>
 
 
 </body>
