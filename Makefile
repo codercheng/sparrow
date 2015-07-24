@@ -37,4 +37,4 @@ picohttpparser.o: picohttpparser.c picohttpparser.h
 	$(CC) $(CFLAGS) $<
 
 clean:
-	rm *.o sparrow -f
+	rm $(OBJS) sparrow -f
