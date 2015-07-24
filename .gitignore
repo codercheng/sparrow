@@ -29,7 +29,7 @@
 *.hex
 
 #custom
-.*
+
 core
 test/
 www/myfolder/
