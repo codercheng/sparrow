@@ -116,7 +116,7 @@ void heap_pop(ev_loop_t *loop) {
 
 //ev_timer_t **
 void timer_heap_init(ev_loop_t *loop, int capacity) {
-	loop->heap = (ev_timer_t**)malloc((capacity + 1)*sizeof(ev_timer_t*));
+	loop->heap = (void **)malloc((capacity + 1)*sizeof(ev_timer_t*));
 	//memset(heap, 0, sizeof(heap));
 	int i;
 	for (i = 0; i <= capacity; i++) {
