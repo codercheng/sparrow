@@ -20,7 +20,7 @@
    
 
 <div id = "wrapper">
-   <button class="btn btn-primary btn-block btn-large" data-toggle="modal" data-target="#myModal"> New Task</button>
+   <button class="btn btn-primary btn-block btn-large" data-toggle="modal" data-target="#myModal"> 点击新建任务 </button>
 
 
 
@@ -102,13 +102,13 @@
              <hr/>
     </div>
 
-    <div class="accordion" id="accordion-292822" style="margin-top:1px">
+    <div class="accordion" id="accordion-292822" style="margin-top:1px;margin-bottom:2px">
           <div class="accordion-group">
                     <div class="accordion-heading">
-                      <a class="accordion-toggle collapsed"  data-parent="#accordion-292822" data-toggle="collapse" style="text-decoration:none; color:red" href="#accordion-element-762390">filter &raquo;&raquo;</a>
+                      <button class="btn btn-default accordion-toggle collapsed"  data-parent="#accordion-292822" data-toggle="collapse"  href="#accordion-element-762390">Filter&raquo;&raquo;</button>
                     </div>
 
-                    <div class="accordion-body collapse" id="accordion-element-762390" style="border:2px ridge #428BCA; border-radius: 10px;">
+                    <div class="accordion-body collapse" id="accordion-element-762390" >
                         <div class="accordion-inner" style="margin-top: 20px; margin-bottom: 20px" >
                                           <div class="btn-group" data-toggle="buttons">
                                                  <label class="btn btn-primary label_status" >
@@ -141,15 +141,19 @@
                   </div>
           </div>
     </div>
-    <hr/>
+   <!--  <hr/> -->
 
-
+    <div id = "myprogress"  class="progress progress-striped "  >
+       <div id = "progress_inner" class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="60" 
+          aria-valuemin="0" aria-valuemax="100" style="width:0%">
+       </div>
+    </div>
 
   <div id = "wrapper_task">
    
   </div>
 </div> 
-	<button class="btn btn-primary btn-block btn-large" data-toggle="modal" data-target="#myModal"> Add A New Task</button>
+	<button class="btn btn-primary btn-block btn-large" data-toggle="modal" data-target="#myModal"> 新建任务</button>
 
    <hr/>
    <div style="height:30px; margin-top:10px;">

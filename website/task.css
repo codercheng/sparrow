@@ -1,5 +1,12 @@
 body {TEXT-ALIGN: center;font-family: Georgia;}
  a {text-decoration:none;}
+ .hidden {
+     display:none;
+}
+.textStyle {
+  color: #F2F2F2;
+  
+}
  .task{
     border: 2px solid #FF4040;
     width:240px;

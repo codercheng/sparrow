@@ -172,12 +172,27 @@ function create_new_task(){
   return false;
 }
 
+function setProgeress() {
+	$("#progress_inner").css("width", "70%");
+	$("#progress_inner").css("width", "100%");
+	setTimeout("rmProgeressActive()", 600);
+}
+function rmProgeressActive() {
+	$("#myprogress").removeClass('active');
+}
+
 //status: 0, 1, 2
 //time_interval: 0, 1, 2
 function task_query(status, time_interval) {
 	console.log('inside task_query-->'+status+','+time_interval);
 	if(status == undefined || time_interval == undefined)
 	return;
+
+	$("#myprogress").addClass('active');
+	$("#progress_inner").css("width", "10%");
+	//$("#progress_inner").css("width", "20%");
+
+
 	jQuery.ajax({
 		url: g_domain+':'+g_port+'/task_query',
 	    type: 'GET',
@@ -187,14 +202,26 @@ function task_query(status, time_interval) {
 	    jsonpCallback:"task_query_cb",
 	    
 	    success: function(message){
+
 	      $('#wrapper_task').empty();
+	      len = message.result.length;
+
+	      console.log("len:"+len);
 	      $.each(message.result, function(idx, task) {
 	        add(task);
+	        //$("#progress_inner").css("width", 100*(idx+1)/len+"%");
+	        //console.log("width:"+100*(idx+1)/len+"%");
 	      });
+	      //$("#progress_inner").css("width", "50%");
+	      setTimeout("setProgeress()", 300);
+	      //$("#myprogress").removeClass('active');
 	    
 	    },
 	    error: function(){
 	      $('#wrapper_task').empty();
+	      $('#wrapper_task').append("<h1>None</h1>").addClass('textStyle');
+	      setTimeout("setProgeress()", 500);
+
 	      console.log("pull return error\n");
 	     // alert("err");
 	    }
