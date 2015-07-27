@@ -1,7 +1,7 @@
 BIN := sparrow
 OBJS := sparrow.o thread_manage.o file.o ev_loop.o config.o async_log.o url.o min_heap.o cJSON.o picohttpparser.o
 CC := gcc
-DEBUG := -g
+DEBUG := -g -Wall
 CFLAGS := -Wall -c $(DEBUG)
 LFLAGS :=  -pthread -lrt -lm
 
