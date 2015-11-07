@@ -384,9 +384,6 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			long long int last_mid = 0;
 			int i;
 			for (i = 0; i < kvs_num; i++) {
-#ifdef _DEBUG
-				printf("%.*s=%.*s\n", kvs[i].key_len, kvs[i].key, kvs[i].value_len, kvs[i].value);
-#endif
 				if (strncmp("lastId", kvs[i].key, kvs[i].key_len) == 0) {
 					char tmp[32];
 					sprintf(tmp, "%.*s", kvs[i].value_len, kvs[i].value);
@@ -416,10 +413,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				close(sock);
 				return NULL;
 			}
-			conn_pool->ReleaseOneConn(sql_conn);
-
+			
 			int count = sql_conn->GetQueryResultCount();
-
 
 			if (count != 0) {
 				cJSON *root, *obj1, *obj2;
@@ -441,6 +436,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 					cJSON_AddStringToObject(obj2, "body", sql_conn->GetField("mbody"));
 					//cJSON_Delete(obj);
 				}
+				conn_pool->ReleaseOneConn(sql_conn);
+				
 				out = cJSON_Print(root);
 				//cJSON_Delete(obj);
 				cJSON_Delete(root);
@@ -461,7 +458,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				free(out);
 				return NULL;
 			}
-
+			conn_pool->ReleaseOneConn(sql_conn);
 
 			ev_timer_t *timer = (ev_timer_t *)fd_records[sock].timer_ptr;
 			if (timer == NULL) {
@@ -676,6 +673,172 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 			free(out);
 			return NULL;
 		}
+		//comment
+		if (strncmp(action, "/comm", 5) == 0) {
+			char message[1024 * 2 + 128];
+			memset(message, 0, sizeof(message));
+			char message2[1024 * 2 + 128];
+			memset(message2, 0, sizeof(message2));
+
+			int i;
+			for (i = 0; i < kvs_num; i++) {
+				//printf("%.*s=%.*s\n", kvs[i].key_len, kvs[i].key, kvs[i].value_len, kvs[i].value);
+				if (strncmp("titile", kvs[i].key, kvs[i].key_len) == 0) {
+					strncpy(message, kvs[i].value, kvs[i].value_len < 1024 ? kvs[i].value_len : 1024);
+				}
+				if (strncmp("content", kvs[i].key, kvs[i].key_len) == 0) {
+					strncpy(message2, kvs[i].value, kvs[i].value_len < 1024 ? kvs[i].value_len : 1024);
+				}
+			}
+
+			//after decoding,  the len is less than before
+			url_decode(message, strlen(message));
+			url_decode(message2, strlen(message2));
+
+			int ret = 1;
+
+			time_t t;
+			t = time(NULL);
+			//insert into db
+			MysqlEncap *sql_conn = conn_pool->GetOneConn();
+
+			char p_escape[1024 * 2 + 1];
+			char p_escape2[1024 * 2 + 1];
+			if (sql_conn != NULL) {
+				sql_conn->EscapeString(p_escape, message);
+				sql_conn->EscapeString(p_escape2, message2);
+			}
+
+			if (sql_conn == NULL) {
+				ret = 0;
+			}
+			char message3[4096+256];
+
+			if (ret) {
+				snprintf(message3, sizeof(message3), "INSERT INTO chatmessage.comment VALUES(NULL, '%ld', '%s', '%s');", \
+					t, p_escape, p_escape2);
+				printf("%s\n", message3);
+				ret = sql_conn->Execute(message3);
+				conn_pool->ReleaseOneConn(sql_conn);
+			}
+			cJSON *root;
+			char *out;
+
+			memset(message, 0, sizeof(message));
+			root = cJSON_CreateObject();
+			if (ret)
+				cJSON_AddStringToObject(root, "status", "success");
+			else
+				cJSON_AddStringToObject(root, "status", "fail");
+
+			out = cJSON_Print(root);
+			cJSON_Delete(root);
+			snprintf(message, 1024 + 64, "comm_cb(%s)", out);
+
+			ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+			if (timer != NULL) {
+				timer->cb = NULL;
+			}
+			int buf_len = 0;
+			if (fd_records[sock].active) {
+
+				buf_len = sprintf(fd_records[sock].buf, "%s", message);
+				fd_records[sock].buf[buf_len] = '\0';
+				fd_records[sock].http_code = 2048;//push
+				ev_register(loop, sock, EV_WRITE, write_http_header);
+			}
+			free(out);
+			return NULL;
+		}
+		if (strncmp(action, "/get_comm", 9) == 0) {
+			char sql[1024];
+			memset(sql, 0, sizeof(sql));
+
+			long long int last_cid = 0;
+			int i;
+			for (i = 0; i < kvs_num; i++) {
+				if (strncmp("lastId", kvs[i].key, kvs[i].key_len) == 0) {
+					char tmp[32];
+					sprintf(tmp, "%.*s", kvs[i].value_len, kvs[i].value);
+					last_cid = atoll(tmp);
+					break;
+				}
+			}
+
+			MysqlEncap *sql_conn = conn_pool->GetOneConn();
+
+
+			if (last_cid == 0)
+				snprintf(sql, 1024, "select * from chatmessage.comment order by id desc limit 10;");
+			else
+				snprintf(sql, 1024, "select * from chatmessage.comment where id < %lld order by id desc limit 10;", last_cid);
+
+			int ret;
+			ret = sql_conn->ExecuteQuery(sql);
+			if (!ret) {
+				fprintf(stderr, "ExecuteQuery error when get_comm pull come!\n");
+				ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+				if (timer != NULL) {
+					timer->cb = NULL;
+				}
+				ev_unregister(loop, sock);
+				close(sock);
+				return NULL;
+			}
+			
+			int count = sql_conn->GetQueryResultCount();
+
+
+			if (count != 0) {
+				cJSON *root, *obj1, *obj2;
+				char *out;
+				//root = cJSON_CreateArray();
+				root = cJSON_CreateObject();
+				obj1 = cJSON_CreateArray();
+				//obj2 = cJSON_CreateObject();
+
+				cJSON_AddItemToObject(root, "result", obj1);
+				//cJSON_AddItemToArray(obj1, obj2);
+	
+
+				while (sql_conn->FetchRow()) {
+					obj2 = cJSON_CreateObject();
+					cJSON_AddItemToArray(obj1, obj2);
+					cJSON_AddStringToObject(obj2, "id", sql_conn->GetField("id"));
+					cJSON_AddStringToObject(obj2, "time", sql_conn->GetField("time"));
+					cJSON_AddStringToObject(obj2, "titile", sql_conn->GetField("titile"));
+					cJSON_AddStringToObject(obj2, "content", sql_conn->GetField("content"));
+					//cJSON_Delete(obj);
+				}
+
+				conn_pool->ReleaseOneConn(sql_conn);
+
+				out = cJSON_Print(root);
+				//cJSON_Delete(obj);
+				cJSON_Delete(root);
+
+
+				ev_timer_t * timer = (ev_timer_t *)(fd_records[sock].timer_ptr);
+				if (timer != NULL) {
+					timer->cb = NULL;
+				}
+				int buf_len = 0;
+				if (fd_records[sock].active) {
+
+					buf_len = sprintf(fd_records[sock].buf, "get_comm_cb(%s)", out);
+					fd_records[sock].buf[buf_len] = '\0';
+					fd_records[sock].http_code = 2048;//push
+					ev_register(loop, sock, EV_WRITE, write_http_header);
+				}
+				free(out);
+				return NULL;
+			}
+			conn_pool->ReleaseOneConn(sql_conn);
+
+			ev_unregister(loop, sock);
+			close(sock);
+			return NULL;
+		}
 		if (strncmp(action, "/task_query", 11) == 0) {
 			char sql[1024];
 			memset(sql, 0, sizeof(sql));
@@ -732,8 +895,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				return NULL;
 			}
 
-			conn_pool->ReleaseOneConn(sql_conn);
-
+			
 			int count = sql_conn->GetQueryResultCount();
 
 			if (count != 0) {
@@ -753,6 +915,8 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 					cJSON_AddStringToObject(obj2, "task_content", sql_conn->GetField("task_content"));
 					//cJSON_Delete(obj);
 				}
+				conn_pool->ReleaseOneConn(sql_conn);
+
 				out = cJSON_Print(root);
 				//cJSON_Delete(obj);
 				cJSON_Delete(root);
@@ -773,7 +937,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				free(out);
 				return NULL;
 			}
-
+			conn_pool->ReleaseOneConn(sql_conn);
 
 
 			ev_unregister(loop, sock);
@@ -895,16 +1059,16 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 		memset(filename, 0, sizeof(filename));
 
 		if (memcmp(action, "/", action_len) == 0) {
-			snprintf(filename, 512, "%s/%s", prefix, conf.def_home_page);
+			snprintf(filename, 1024, "%s/%s", prefix, conf.def_home_page);
 		}
 		else {
 			/*limit the filename len*/
-			snprintf(filename, 512, "%s%.*s", prefix, action_len, action);
+			snprintf(filename, 1024, "%s%.*s", prefix, action_len, action);
 		}
 #ifdef _DEBUG
 		char dbg_msg[1024 + 1 + strlen(work_dir)];
 		memset(dbg_msg, 0, sizeof(dbg_msg));
-		snprintf(dbg_msg, 512, "prefix:%s", prefix);
+		snprintf(dbg_msg, 1024, "prefix:%s", prefix);
 
 		dbg_printf(dbg_msg);
 
@@ -940,7 +1104,7 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 
 		if (fd_records[sock].http_code == 404) {
 			memset(filename, 0, sizeof(filename));
-			snprintf(filename, 512, "%s/%s", prefix, "404.html");
+			snprintf(filename, 1024, "%s/%s", prefix, "404.html");
 			lstat(filename, &filestat);
 		}
 
