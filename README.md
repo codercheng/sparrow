@@ -5,10 +5,17 @@
 `sparrow` 是一个简单高效的http server，纯C语言开发(基于Linux)，目前主要用在本人个人的网站.
 
 ---------------
-#online demo
+#Online demo
 
   * [@blog](http://chengshuguang.com)
   * [@chat room](http://chengshuguang.com/ajax.html)
+
+
+--------------
+#150行的一个demo httpd，帮你理解整个结构
+`如果需要理解代码的结构，建议去看我单独列出来得一个demo server的代码`
+ * [demo server](https://github.com/codercheng/ev_lib/blob/master/ev_httpd.c)
+ 这是一个基于epoll而写的一个简单高效的http server, 该server能轻松应对并发问题(单进程+eventloop+IO复用+非阻塞IO). 该httpd目前的功能很简单，接收http请求，返回“hello evlib”。
 
 ---------------
 #News
