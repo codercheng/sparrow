@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <ctype.h>
+#include <sys/time.h>
 
 #include "util.h"
 #include "min_heap.h"
@@ -219,7 +220,9 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 	size_t  method_len, path_len, num_headers;
 	ssize_t nread;
 	////////////////////////////////////////////////////////////////////
-
+    struct timeval curtv;
+    gettimeofday(&curtv, NULL);
+    unsigned int last_sec = curtv.tv_sec;
 	while (1) {
 		nread = read(sock, buf + fd_records[sock].read_pos, MAXBUFSIZE - fd_records[sock].read_pos);
 		if (nread > 0) {
@@ -232,9 +235,19 @@ void *read_http(ev_loop_t *loop, int sock, EV_TYPE events) {
 				break;
 			}
 			//问题又来了，如果对方迟迟都没有发\r\n\r\n那么岂不是要一直等下去？
-			//加一个定时器
-			//break;
-		}
+            //加了一个时间判断，如果8s还没有处理完，就关掉
+            gettimeofday(&curtv, NULL);
+            if (curtv.tv_sec - last_sec >= 8) {
+                safe_close(loop, sock);
+				if (conf.log_enable) {
+					log_error("read http header timeout\n");
+				}
+				else {
+					fprintf(stderr, "read http header timeout\n");
+				}
+                return NULL;
+            }
+        }
 		else if (nread == -1) {
 			if (errno != EAGAIN)	{
 				if (conf.log_enable) {
