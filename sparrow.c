@@ -704,6 +704,10 @@ void *write_http_body(ev_loop_t *loop, int sockfd, EV_TYPE events) {
 	int ffd = fd_records[sockfd].ffd;
 	while (1) {
 		off_t offset = fd_records[sockfd].read_pos;
+        /*
+         * bug: sendfile is a block operation, file-->network, non-blocking on network, but blocking on file(read io)
+         * if read() is blocked, sendfile() cannot return.
+         */
 		int s = sendfile(sockfd, ffd, &offset, fd_records[sockfd].total_len - fd_records[sockfd].read_pos);
 		fd_records[sockfd].read_pos = offset;
 		if (s == -1) {
